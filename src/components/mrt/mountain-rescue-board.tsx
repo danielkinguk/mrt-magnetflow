@@ -168,6 +168,9 @@ export function MountainRescueBoard() {
     clonedElement.classList.add('opacity-75');
 
     boardRef.current?.appendChild(clonedElement);
+
+    cardElement.classList.add('opacity-0');
+
     setDraggedItemType('member');
     setDraggedItem({
       id: memberId,
@@ -239,18 +242,25 @@ export function MountainRescueBoard() {
   };
   
   const handleMouseUp = (e: React.MouseEvent<HTMLElement>) => {
-    if (draggedItem && draggedItemType === 'member') {
-      draggedItem.element?.remove();
-      const targetElement = document.elementFromPoint(e.clientX, e.clientY);
-      const targetColumnEl = targetElement?.closest('[data-column-id]');
-      const targetColumnId = targetColumnEl?.getAttribute('data-column-id');
-      const targetColumnType = targetColumnEl?.getAttribute('data-column-type') as 'vehicle' | 'team' | 'unassigned' | undefined;
-
-      let newAssignee: Assignee = null;
-      if (targetColumnId && targetColumnType && targetColumnType !== 'unassigned') {
-          newAssignee = { type: targetColumnType, id: targetColumnId };
+    if (draggedItem) {
+      if (draggedItemType === 'member') {
+        draggedItem.element?.remove();
+        
+        // Make original card visible again
+        const originalCard = boardRef.current?.querySelector(`[data-member-id="${draggedItem.id}"]`);
+        originalCard?.classList.remove('opacity-0');
+        
+        const targetElement = document.elementFromPoint(e.clientX, e.clientY);
+        const targetColumnEl = targetElement?.closest('[data-column-id]');
+        const targetColumnId = targetColumnEl?.getAttribute('data-column-id');
+        const targetColumnType = targetColumnEl?.getAttribute('data-column-type') as 'vehicle' | 'team' | 'unassigned' | undefined;
+  
+        let newAssignee: Assignee = null;
+        if (targetColumnId && targetColumnType && targetColumnType !== 'unassigned') {
+            newAssignee = { type: targetColumnType, id: targetColumnId };
+        }
+        updateItem(draggedItem.id, 'member', { assignee: newAssignee });
       }
-      updateItem(draggedItem.id, 'member', { assignee: newAssignee });
     }
     
     setDraggedItem(null);
