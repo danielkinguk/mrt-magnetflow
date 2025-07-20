@@ -13,11 +13,39 @@ export type MagnetData = {
 };
 
 export type ConnectionData = {
-  id: string;
+  id:string;
   sourceId: string;
   targetId: string;
 };
 
 export type AISuggestion = ConnectionData & {
   reason: string;
+};
+
+// Mountain Rescue Types
+export type Skill = {
+  id: string;
+  name: string;
+  color: string;
+};
+
+export type TeamMember = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  skills: Skill['id'][];
+  role?: 'default' | 'driver' | 'leader';
+  vehicleId: Vehicle['id'] | null;
+};
+
+export type Vehicle = {
+  id: string;
+  name: string;
+  color: string;
+};
+
+export type BoardData = {
+  teamMembers: TeamMember[];
+  vehicles: Vehicle[];
+  unassigned: TeamMember[];
 };
