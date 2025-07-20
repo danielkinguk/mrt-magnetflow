@@ -121,10 +121,13 @@ export function MountainRescueBoard({
     let initialPosition = member.position;
     
     if (!initialPosition) {
+        // If the member doesn't have a position, it's in a column. Calculate its initial
+        // position on the board before detaching it.
         initialPosition = {
           x: cardRect.left - boardRect.left,
           y: cardRect.top - boardRect.top,
         };
+        // Immediately update state to reflect it's being dragged and has a position
         onUpdateMember(memberId, { position: initialPosition, assignee: null });
     }
     
@@ -215,8 +218,11 @@ export function MountainRescueBoard({
           newAssignee = { type: targetColumnType as 'vehicle' | 'team', id: targetColumnId };
         }
   
+        // Final update: set assignee and clear position to snap it into place.
         onUpdateMember(draggedItem.id, { assignee: newAssignee, position: undefined });
+
       } finally {
+        // Always restore the element's interactivity and clear drag state
         if (draggedEl && originalPointerEvents !== null) {
           draggedEl.style.pointerEvents = originalPointerEvents;
         }
@@ -224,6 +230,7 @@ export function MountainRescueBoard({
         setResizedItem(null);
       }
     } else {
+      // Clear drag state if it wasn't a member being dragged
       setDraggedItem(null);
       setResizedItem(null);
     }
@@ -312,7 +319,7 @@ export function MountainRescueBoard({
           })}
 
           {floatingMembers.map(member => (
-              <div key={member.id} className="absolute z-10" style={{left: member.position!.x, top: member.position!.y}}>
+              <div key={member.id} className="absolute z-50" style={{left: member.position!.x, top: member.position!.y}}>
                 <TeamMemberCard 
                   member={member} 
                   skills={ALL_SKILLS} 
