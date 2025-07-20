@@ -20,3 +20,16 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+export function AppLogo(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 100 36"
+      fill="currentColor"
+      {...props}
+    >
+      <rect width="100" height="36" fill="hsl(var(--muted))" />
+    </svg>
+  )
+}
