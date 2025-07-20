@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type MouseEvent } from 'react';
 import { Card } from '@/components/ui/card';
 import type { TeamMember, Skill } from '@/lib/mrt/types';
 import { cn } from '@/lib/utils';
-import { GripVertical, Trash2 } from 'lucide-react';
+import { GripVertical, Trash2, ArrowDownRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
 interface TeamMemberCardProps {
@@ -13,9 +13,10 @@ interface TeamMemberCardProps {
   isUnassigned?: boolean;
   onRemove?: (id: string) => void;
   onUpdate: (id: string, updates: Partial<TeamMember>) => void;
+  onResizeStart: (e: MouseEvent, id: string) => void;
 }
 
-export function TeamMemberCard({ member, skills, isUnassigned = false, onRemove, onUpdate }: TeamMemberCardProps) {
+export function TeamMemberCard({ member, skills, isUnassigned = false, onRemove, onUpdate, onResizeStart }: TeamMemberCardProps) {
   const memberSkills = skills.filter(s => member.skills.includes(s.id));
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(`${member.firstName} ${member.lastName}`);
@@ -42,8 +43,12 @@ export function TeamMemberCard({ member, skills, isUnassigned = false, onRemove,
 
   return (
     <Card
+      style={{
+        width: member.width ? `${member.width}px` : 'auto',
+        height: member.height ? `${member.height}px` : 'auto',
+      }}
       className={cn(
-        'p-2 flex items-center gap-2 mb-2 bg-white/90 dark:bg-slate-800/90 shadow-sm hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing border border-slate-200 dark:border-slate-700/80 group',
+        'p-2 flex items-center gap-2 mb-2 bg-white/90 dark:bg-slate-800/90 shadow-sm hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing border border-slate-200 dark:border-slate-700/80 group relative',
         {
           'bg-red-200/80 dark:bg-red-900/50': member.role === 'leader',
           'border-l-4 border-yellow-500': member.role === 'driver',
@@ -86,6 +91,12 @@ export function TeamMemberCard({ member, skills, isUnassigned = false, onRemove,
           <Trash2 className="h-4 w-4" />
         </button>
       )}
+      <div
+        onMouseDown={(e) => onResizeStart(e, member.id)}
+        className="absolute bottom-0 right-0 cursor-se-resize text-slate-400 hover:text-slate-600 dark:text-slate-600 dark:hover:text-slate-400 opacity-50 group-hover:opacity-100"
+      >
+        <ArrowDownRight className="w-3 h-3" />
+      </div>
     </Card>
   );
 }

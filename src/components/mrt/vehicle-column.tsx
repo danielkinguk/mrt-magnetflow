@@ -14,9 +14,10 @@ interface VehicleColumnProps {
   onMouseDown: (e: MouseEvent) => void;
   updateVehicle: (id: string, updates: Partial<Vehicle>) => void;
   updateMember: (id: string, updates: Partial<TeamMember>) => void;
+  onResizeMemberStart: (e: MouseEvent, memberId: string) => void;
 }
 
-export function VehicleColumn({ vehicle, members, allSkills, position, onMouseDown, updateVehicle, updateMember }: VehicleColumnProps) {
+export function VehicleColumn({ vehicle, members, allSkills, position, onMouseDown, updateVehicle, updateMember, onResizeMemberStart }: VehicleColumnProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(vehicle.name);
 
@@ -68,7 +69,14 @@ export function VehicleColumn({ vehicle, members, allSkills, position, onMouseDo
         </CardHeader>
         <CardContent className="p-2 min-h-[200px]">
           {members.map(member => (
-            <TeamMemberCard key={member.id} member={member} skills={allSkills} onUpdate={updateMember} />
+            <div key={member.id} onMouseDown={(e) => e.stopPropagation()}>
+                <TeamMemberCard 
+                    member={member} 
+                    skills={allSkills} 
+                    onUpdate={updateMember} 
+                    onResizeStart={onResizeMemberStart}
+                />
+            </div>
           ))}
         </CardContent>
       </Card>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, type MouseEvent, useCallback, useRef } from 'react';
-import type { TeamMember, Vehicle, Skill, Column } from '@/lib/mrt/types';
+import type { TeamMember, Vehicle, Skill, Column, Point } from '@/lib/mrt/types';
 import { VehicleColumn } from '@/components/mrt/vehicle-column';
 import { MrtToolbar } from '@/components/mrt/mrt-toolbar';
 import { INITIAL_TEAM_MEMBERS, INITIAL_VEHICLES, ALL_SKILLS } from '@/lib/mrt/data';
@@ -10,6 +10,8 @@ import { produce } from 'immer';
 import { NoSSR } from '@/components/no-ssr';
 
 const GRID_SIZE = 20;
+const MIN_CARD_WIDTH = 200;
+const MIN_CARD_HEIGHT = 44;
 
 export function MountainRescueBoard() {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>(INITIAL_TEAM_MEMBERS);
@@ -24,6 +26,7 @@ export function MountainRescueBoard() {
 
   const [columns, setColumns] = useState<Column[]>(initialColumns);
   const [draggedItem, setDraggedItem] = useState<{ id: string; offset: { x: number; y: number } } | null>(null);
+  const [resizedItem, setResizedItem] = useState<{ id: string, initialPos: Point, initialSize: {width: number, height: number} } | null>(null);
 
   const getBoardCoordinates = useCallback((e: MouseEvent) => {
     if (!boardRef.current) return { x: 0, y: 0 };
@@ -60,29 +63,58 @@ export function MountainRescueBoard() {
       offset: { x: boardPos.x - column.position.x, y: boardPos.y - column.position.y },
     });
   };
+
+  const handleResizeMemberStart = (e: MouseEvent, memberId: string) => {
+    e.stopPropagation();
+    const member = teamMembers.find(m => m.id === memberId);
+    if (!member) return;
+    
+    // Find the rendered element to get its current size
+    const cardElement = (e.target as HTMLElement).closest('[class*="p-2 flex items-center"]');
+    if (!cardElement) return;
+
+    const { width, height } = cardElement.getBoundingClientRect();
+
+    setResizedItem({
+      id: memberId,
+      initialPos: { x: e.clientX, y: e.clientY },
+      initialSize: { width: member.width || width, height: member.height || height },
+    });
+  };
   
   const handleMouseMove = (e: MouseEvent) => {
-    if (!draggedItem) return;
     const boardPos = getBoardCoordinates(e);
-    let newX = boardPos.x - draggedItem.offset.x;
-    let newY = boardPos.y - draggedItem.offset.y;
-    
-    newX = Math.round(newX / GRID_SIZE) * GRID_SIZE;
-    newY = Math.round(newY / GRID_SIZE) * GRID_SIZE;
 
-    setColumns(
-        produce(draft => {
-            const dragged = draft.find(c => c.id === draggedItem.id);
-            if(dragged) {
-                dragged.position.x = newX;
-                dragged.position.y = newY;
-            }
-        })
-    );
+    if (draggedItem) {
+      let newX = boardPos.x - draggedItem.offset.x;
+      let newY = boardPos.y - draggedItem.offset.y;
+      
+      newX = Math.round(newX / GRID_SIZE) * GRID_SIZE;
+      newY = Math.round(newY / GRID_SIZE) * GRID_SIZE;
+
+      setColumns(
+          produce(draft => {
+              const dragged = draft.find(c => c.id === draggedItem.id);
+              if(dragged) {
+                  dragged.position.x = newX;
+                  dragged.position.y = newY;
+              }
+          })
+      );
+    } else if (resizedItem) {
+        const dx = e.clientX - resizedItem.initialPos.x;
+        const dy = e.clientY - resizedItem.initialPos.y;
+        
+        const newWidth = Math.max(MIN_CARD_WIDTH, resizedItem.initialSize.width + dx);
+        const newHeight = Math.max(MIN_CARD_HEIGHT, resizedItem.initialSize.height + dy);
+
+        updateMember(resizedItem.id, { width: newWidth, height: newHeight });
+    }
   };
   
   const handleMouseUp = () => {
     setDraggedItem(null);
+    setResizedItem(null);
   };
 
   const updateMember = (id: string, updates: Partial<TeamMember>) => {
@@ -124,6 +156,7 @@ export function MountainRescueBoard() {
                 onMouseDown={(e) => handleMouseDownOnColumn(e, column.id)}
                 updateVehicle={updateVehicle}
                 updateMember={updateMember}
+                onResizeMemberStart={handleResizeMemberStart}
               />
             );
           }
@@ -137,6 +170,7 @@ export function MountainRescueBoard() {
                 onMouseDown={(e) => handleMouseDownOnColumn(e, column.id)}
                 onRemoveMember={handleRemoveMember}
                 updateMember={updateMember}
+                onResizeMemberStart={handleResizeMemberStart}
               />
             )
           }

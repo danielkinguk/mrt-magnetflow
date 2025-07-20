@@ -12,9 +12,10 @@ interface UnassignedColumnProps {
   onMouseDown: (e: MouseEvent, id: string) => void;
   onRemoveMember: (id: string) => void;
   updateMember: (id: string, updates: Partial<TeamMember>) => void;
+  onResizeMemberStart: (e: MouseEvent, memberId: string) => void;
 }
 
-export function UnassignedColumn({ members, allSkills, position, onMouseDown, onRemoveMember, updateMember }: UnassignedColumnProps) {
+export function UnassignedColumn({ members, allSkills, position, onMouseDown, onRemoveMember, updateMember, onResizeMemberStart }: UnassignedColumnProps) {
   return (
     <div
       className="absolute"
@@ -29,14 +30,16 @@ export function UnassignedColumn({ members, allSkills, position, onMouseDown, on
         </CardHeader>
         <CardContent className="p-2 min-h-[200px]">
             {members.map(member => (
-                <TeamMemberCard 
-                  key={member.id} 
-                  member={member} 
-                  skills={allSkills} 
-                  isUnassigned={true} 
-                  onRemove={onRemoveMember} 
-                  onUpdate={updateMember}
-                />
+                <div key={member.id} onMouseDown={(e) => e.stopPropagation()}>
+                    <TeamMemberCard 
+                      member={member} 
+                      skills={allSkills} 
+                      isUnassigned={true} 
+                      onRemove={onRemoveMember} 
+                      onUpdate={updateMember}
+                      onResizeStart={onResizeMemberStart}
+                    />
+                </div>
             ))}
         </CardContent>
       </Card>

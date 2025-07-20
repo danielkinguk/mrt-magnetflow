@@ -17,6 +17,8 @@ export type TeamMember = {
   skills: Skill['id'][];
   role?: 'default' | 'driver' | 'leader';
   vehicleId: Vehicle['id'] | null;
+  width?: number;
+  height?: number;
 };
 
 export type Vehicle = {
