@@ -1,7 +1,7 @@
 'use client';
 import type { MouseEvent } from 'react';
 import { useState } from 'react';
-import type { Vehicle, TeamMember, Skill, Point, Team } from '@/lib/mrt/types';
+import type { Vehicle, TeamMember, Skill, Point, Team, Column } from '@/lib/mrt/types';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { TeamMemberCard } from '@/components/mrt/team-member-card';
 import { Input } from '../ui/input';
@@ -14,14 +14,13 @@ interface ResourceColumnProps {
   allSkills: Skill[];
   position: Point;
   onMouseDown: (e: MouseEvent) => void;
-  updateMember: (id: string, updates: Partial<TeamMember>) => void;
-  updateContainer: (id: string, type: 'vehicle' | 'team', updates: Partial<Vehicle> | Partial<Team>) => void;
-  onRemoveContainer: (id: string, type: 'vehicle' | 'team') => void;
+  onUpdateItem: (id: string, type: 'member' | 'vehicle' | 'team', updates: Partial<TeamMember | Vehicle | Team>) => void;
+  onRemoveItem: (id: string, type: 'vehicle' | 'team') => void;
   onResizeMemberStart: (e: MouseEvent, memberId: string) => void;
   onMemberMouseDown: (e: MouseEvent<HTMLDivElement>, memberId: string) => void;
 }
 
-export function ResourceColumn({ container, type, members, allSkills, position, onMouseDown, updateMember, updateContainer, onRemoveContainer, onResizeMemberStart, onMemberMouseDown }: ResourceColumnProps) {
+export function ResourceColumn({ container, type, members, allSkills, position, onMouseDown, onUpdateItem, onRemoveItem, onResizeMemberStart, onMemberMouseDown }: ResourceColumnProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(container.name);
 
@@ -36,7 +35,7 @@ export function ResourceColumn({ container, type, members, allSkills, position, 
   const handleBlur = () => {
     setIsEditing(false);
     if (name !== container.name) {
-      updateContainer(container.id, type, { name });
+      onUpdateItem(container.id, type, { name });
     }
   };
   
@@ -82,7 +81,7 @@ export function ResourceColumn({ container, type, members, allSkills, position, 
         </CardHeader>
         <button
           className="absolute top-2 right-2 w-6 h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center cursor-pointer hover:bg-destructive/90 opacity-0 group-hover:opacity-100 transition-opacity"
-          onClick={(e) => { e.stopPropagation(); onRemoveContainer(container.id, type); }}
+          onClick={(e) => { e.stopPropagation(); onRemoveItem(container.id, type); }}
           onMouseDown={(e) => e.stopPropagation()}
           title={`Delete ${type}`}
         >
@@ -94,7 +93,7 @@ export function ResourceColumn({ container, type, members, allSkills, position, 
               <TeamMemberCard 
                 member={member} 
                 skills={allSkills} 
-                onUpdate={updateMember} 
+                onUpdate={(updates) => onUpdateItem(member.id, 'member', updates)} 
                 onResizeStart={onResizeMemberStart}
                 onMouseDown={onMemberMouseDown}
               />

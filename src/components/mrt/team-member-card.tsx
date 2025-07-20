@@ -11,8 +11,8 @@ interface TeamMemberCardProps {
   member: TeamMember;
   skills: Skill[];
   isUnassigned?: boolean;
-  onRemove?: (id: string) => void;
-  onUpdate: (id: string, updates: Partial<TeamMember>) => void;
+  onRemove?: () => void;
+  onUpdate: (updates: Partial<TeamMember>) => void;
   onResizeStart: (e: MouseEvent, id: string) => void;
   onMouseDown: (e: MouseEvent<HTMLDivElement>, id: string) => void;
 }
@@ -33,7 +33,7 @@ export function TeamMemberCard({ member, skills, isUnassigned = false, onRemove,
   const handleBlur = () => {
     setIsEditing(false);
     const [firstName, ...lastNameParts] = name.trim().split(' ');
-    onUpdate(member.id, { firstName, lastName: lastNameParts.join(' ') });
+    onUpdate({ firstName, lastName: lastNameParts.join(' ') });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -96,7 +96,7 @@ export function TeamMemberCard({ member, skills, isUnassigned = false, onRemove,
         </div>
       )}
        {isUnassigned && onRemove && (
-        <button onClick={() => onRemove(member.id)} onMouseDown={(e) => e.stopPropagation()} className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive/70 hover:text-destructive">
+        <button onClick={onRemove} onMouseDown={(e) => e.stopPropagation()} className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive/70 hover:text-destructive">
           <Trash2 className="h-4 w-4" />
         </button>
       )}

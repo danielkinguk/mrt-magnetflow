@@ -54,7 +54,7 @@ export function MountainRescueBoard() {
   const initialColumns: Column[] = [
     ...INITIAL_VEHICLES.map((v, i) => ({ id: v.id, type: 'vehicle' as const, position: { x: i * 340 + 20, y: 120 } })),
     ...INITIAL_TEAMS.map((t, i) => ({ id: t.id, type: 'team' as const, position: { x: (i + INITIAL_VEHICLES.length) * 340 + 20, y: 120 } })),
-    { id: 'toolbar', type: 'toolbar' as const, position: { x: 20, y: 60 } },
+    { id: 'toolbar', type: 'toolbar' as const, position: { x: 20, y: 20 } },
   ];
 
   const [columns, setColumns] = useState<Column[]>(initialColumns);
@@ -78,34 +78,23 @@ export function MountainRescueBoard() {
     const name = newResource.name;
     if (!name.trim()) return;
 
-    if (type === 'vehicle') {
-      const newVehicle: Vehicle = {
-        id: `vcl-${Date.now()}`,
+    const newId = `${type}-${Date.now()}`;
+    const newPosition = { x: 20, y: 500 };
+
+    if (type === 'vehicle' || type === 'team') {
+      const newContainer = {
+        id: newId,
         name,
-        color: `#${Math.floor(Math.random()*16777215).toString(16)}`
+        color: `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`
       };
-      setVehicles(prev => [...prev, newVehicle]);
-      setColumns(prev => [...prev, {
-        id: newVehicle.id,
-        type: 'vehicle',
-        position: { x: 20, y: 500 }
-      }]);
-    } else if (type === 'team') {
-      const newTeam: Team = {
-        id: `team-${Date.now()}`,
-        name,
-        color: `#${Math.floor(Math.random()*16777215).toString(16)}`
-      };
-      setTeams(prev => [...prev, newTeam]);
-      setColumns(prev => [...prev, {
-        id: newTeam.id,
-        type: 'team',
-        position: { x: 20, y: 500 }
-      }]);
-    } else {
+      const stateSetter = type === 'vehicle' ? setVehicles : setTeams;
+      stateSetter(prev => [...prev, newContainer]);
+      
+      setColumns(prev => [...prev, { id: newId, type, position: newPosition }]);
+    } else { // person or equipment
       const [firstName, ...lastNameParts] = name.split(' ');
       const newMember: TeamMember = {
-        id: `res-${Date.now()}`,
+        id: newId,
         firstName: firstName || 'New',
         lastName: lastNameParts.join(' ') || 'Resource',
         skills: [],
@@ -120,26 +109,23 @@ export function MountainRescueBoard() {
   };
 
 
-  const handleRemoveMember = (id: string) => {
-    setTeamMembers(prev => prev.filter(m => m.id !== id));
-  };
+  const handleRemoveItem = (id: string, type: 'member' | 'vehicle' | 'team') => {
+    if (type === 'member') {
+      setTeamMembers(prev => prev.filter(m => m.id !== id));
+    } else { // vehicle or team
+      if (type === 'vehicle') setVehicles(prev => prev.filter(v => v.id !== id));
+      if (type === 'team') setTeams(prev => prev.filter(t => t.id !== id));
 
-  const handleRemoveContainer = (id: string, type: 'vehicle' | 'team') => {
-    if (type === 'vehicle') {
-      setVehicles(prev => prev.filter(v => v.id !== id));
-    } else {
-      setTeams(prev => prev.filter(t => t.id !== id));
+      setColumns(prev => prev.filter(c => c.id !== id));
+      
+      setTeamMembers(produce(draft => {
+        draft.forEach(member => {
+          if (member.assignee?.id === id) {
+            member.assignee = null;
+          }
+        });
+      }));
     }
-
-    setColumns(prev => prev.filter(c => c.id !== id));
-    
-    setTeamMembers(produce(draft => {
-      draft.forEach(member => {
-        if (member.assignee?.id === id) {
-          member.assignee = null;
-        }
-      });
-    }));
   };
   
   const handleMouseDownOnColumn = (e: MouseEvent, id: string) => {
@@ -226,7 +212,7 @@ export function MountainRescueBoard() {
         newX = Math.round(newX / GRID_SIZE) * GRID_SIZE;
         newY = Math.round(newY / GRID_SIZE) * GRID_SIZE;
 
-        updateColumn(draggedItem.id, { position: { x: newX, y: newY } });
+        updateItem(draggedItem.id, 'column', { position: { x: newX, y: newY } });
 
       } else if (draggedItemType === 'member' && draggedItem.element) {
           const newX = boardPos.x - draggedItem.offset.x;
@@ -241,11 +227,11 @@ export function MountainRescueBoard() {
         if (resizedItem.type === 'member') {
           const newWidth = Math.max(MIN_CARD_WIDTH, resizedItem.initialSize.width + dx);
           const newHeight = Math.max(MIN_CARD_HEIGHT, resizedItem.initialSize.height + dy);
-          updateMember(resizedItem.id, { width: newWidth, height: newHeight });
+          updateItem(resizedItem.id, 'member', { width: newWidth, height: newHeight });
         } else if (resizedItem.type === 'column') {
           const newWidth = Math.max(MIN_TOOLBAR_WIDTH, resizedItem.initialSize.width + dx);
           const newHeight = Math.max(MIN_TOOLBAR_HEIGHT, resizedItem.initialSize.height + dy);
-          updateColumn(resizedItem.id, { width: newWidth, height: newHeight });
+          updateItem(resizedItem.id, 'column', { width: newWidth, height: newHeight });
         }
     }
   };
@@ -262,7 +248,7 @@ export function MountainRescueBoard() {
       if (targetColumnId && targetColumnType && targetColumnType !== 'unassigned') {
           newAssignee = { type: targetColumnType, id: targetColumnId };
       }
-      updateMember(draggedItem.id, { assignee: newAssignee });
+      updateItem(draggedItem.id, 'member', { assignee: newAssignee });
     }
     
     setDraggedItem(null);
@@ -270,33 +256,23 @@ export function MountainRescueBoard() {
     setResizedItem(null);
   };
 
-  const updateMember = (id: string, updates: Partial<TeamMember>) => {
-    setTeamMembers(produce(draft => {
-      const member = draft.find(m => m.id === id);
-      if (member) Object.assign(member, updates);
-    }));
-  };
-
-  const updateContainer = (id: string, type: 'vehicle' | 'team', updates: Partial<Vehicle> | Partial<Team>) => {
-    if (type === 'vehicle') {
-      setVehicles(produce(draft => {
-        const vehicle = draft.find(v => v.id === id);
-        if (vehicle) Object.assign(vehicle, updates);
-      }));
-    } else {
-      setTeams(produce(draft => {
-        const team = draft.find(t => t.id === id);
-        if (team) Object.assign(team, updates);
-      }));
+  const updateItem = useCallback((id: string, type: 'member' | 'vehicle' | 'team' | 'column', updates: Partial<TeamMember | Vehicle | Team | Column>) => {
+    const stateSetters: Record<string, React.Dispatch<React.SetStateAction<any[]>>> = {
+      member: setTeamMembers,
+      vehicle: setVehicles,
+      team: setTeams,
+      column: setColumns,
+    };
+    const updater = produce((draft: any[]) => {
+      const item = draft.find((i) => i.id === id);
+      if (item) Object.assign(item, updates);
+    });
+    
+    const setter = stateSetters[type];
+    if (setter) {
+      setter(updater);
     }
-  };
-
-  const updateColumn = (id: string, updates: Partial<Column>) => {
-    setColumns(produce(draft => {
-        const column = draft.find(c => c.id === id);
-        if (column) Object.assign(column, updates);
-    }));
-  };
+  }, []);
   
   const unassignedMembers = [...teamMembers.filter(m => m.assignee === null)].sort((a, b) => {
     if (a.type === 'person' && b.type === 'equipment') return -1;
@@ -365,9 +341,8 @@ export function MountainRescueBoard() {
                   allSkills={ALL_SKILLS}
                   position={column.position}
                   onMouseDown={(e) => handleMouseDownOnColumn(e, column.id)}
-                  updateMember={updateMember}
-                  updateContainer={updateContainer}
-                  onRemoveContainer={handleRemoveContainer}
+                  onUpdateItem={updateItem}
+                  onRemoveItem={handleRemoveItem}
                   onResizeMemberStart={(e, id) => handleResizeStart(e, id, 'member')}
                   onMemberMouseDown={handleMouseDownOnMember}
                 />
@@ -390,8 +365,8 @@ export function MountainRescueBoard() {
                   member={member} 
                   skills={ALL_SKILLS} 
                   isUnassigned={true}
-                  onRemove={handleRemoveMember} 
-                  onUpdate={updateMember}
+                  onRemove={() => handleRemoveItem(member.id, 'member')} 
+                  onUpdate={(updates) => updateItem(member.id, 'member', updates)}
                   onResizeStart={(e, id) => handleResizeStart(e, id, 'member')}
                   onMouseDown={handleMouseDownOnMember}
                 />
