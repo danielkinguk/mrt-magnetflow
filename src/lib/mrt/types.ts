@@ -10,13 +10,18 @@ export type Skill = {
   color: string;
 };
 
+export type Assignee = 
+  | { type: 'vehicle', id: string }
+  | { type: 'team', id: string }
+  | null;
+
 export type TeamMember = {
   id: string;
   firstName: string;
   lastName: string;
   skills: Skill['id'][];
   role?: 'default' | 'driver' | 'leader';
-  vehicleId: Vehicle['id'] | null;
+  assignee: Assignee;
   width?: number;
   height?: number;
   type: 'person' | 'equipment';
@@ -28,9 +33,15 @@ export type Vehicle = {
   color: string;
 };
 
+export type Team = {
+  id: string;
+  name: string;
+  color: string;
+}
+
 export type Column = {
     id: string;
-    type: 'vehicle' | 'unassigned' | 'toolbar';
+    type: 'vehicle' | 'team' | 'toolbar';
     position: Point;
     width?: number;
     height?: number;

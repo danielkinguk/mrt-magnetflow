@@ -32,6 +32,7 @@ export function MrtToolbar({ onAddResource, onMouseDown, onResizeStart, id, widt
 
   return (
     <div
+      data-column-id={id}
       className="bg-card/80 backdrop-blur-sm p-2 rounded-lg border shadow-lg flex items-center gap-2 cursor-move relative group"
       onMouseDown={onMouseDown}
       style={{

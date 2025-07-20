@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, type MouseEvent, useCallback, useRef } from 'react';
-import type { TeamMember, Vehicle, Skill, Column, Point } from '@/lib/mrt/types';
-import { VehicleColumn } from '@/components/mrt/vehicle-column';
+import type { TeamMember, Vehicle, Skill, Column, Point, Team, Assignee } from '@/lib/mrt/types';
+import { ResourceColumn } from '@/components/mrt/resource-column';
 import { MrtToolbar } from '@/components/mrt/mrt-toolbar';
-import { INITIAL_TEAM_MEMBERS, INITIAL_VEHICLES, ALL_SKILLS } from '@/lib/mrt/data';
+import { INITIAL_TEAM_MEMBERS, INITIAL_VEHICLES, ALL_SKILLS, INITIAL_TEAMS } from '@/lib/mrt/data';
 import { produce } from 'immer';
 import { NoSSR } from '@/components/no-ssr';
 import { TeamMemberCard } from './team-member-card';
@@ -48,10 +48,12 @@ type NewResourceState = {
 export function MountainRescueBoard() {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>(INITIAL_TEAM_MEMBERS);
   const [vehicles, setVehicles] = useState<Vehicle[]>(INITIAL_VEHICLES);
+  const [teams, setTeams] = useState<Team[]>(INITIAL_TEAMS);
   const boardRef = useRef<HTMLDivElement>(null);
   
   const initialColumns: Column[] = [
     ...INITIAL_VEHICLES.map((v, i) => ({ id: v.id, type: 'vehicle' as const, position: { x: i * 340 + 20, y: 120 } })),
+    ...INITIAL_TEAMS.map((t, i) => ({ id: t.id, type: 'team' as const, position: { x: (i + INITIAL_VEHICLES.length) * 340 + 20, y: 120 } })),
     { id: 'toolbar', type: 'toolbar' as const, position: { x: 20, y: 60 } },
   ];
 
@@ -72,7 +74,7 @@ export function MountainRescueBoard() {
     setNewResource({ open: true, name });
   };
   
-  const handleCreateResource = (type: 'person' | 'equipment' | 'vehicle') => {
+  const handleCreateResource = (type: 'person' | 'equipment' | 'vehicle' | 'team') => {
     const name = newResource.name;
     if (!name.trim()) return;
 
@@ -88,6 +90,18 @@ export function MountainRescueBoard() {
         type: 'vehicle',
         position: { x: 20, y: 500 }
       }]);
+    } else if (type === 'team') {
+      const newTeam: Team = {
+        id: `team-${Date.now()}`,
+        name,
+        color: `#${Math.floor(Math.random()*16777215).toString(16)}`
+      };
+      setTeams(prev => [...prev, newTeam]);
+      setColumns(prev => [...prev, {
+        id: newTeam.id,
+        type: 'team',
+        position: { x: 20, y: 500 }
+      }]);
     } else {
       const [firstName, ...lastNameParts] = name.split(' ');
       const newMember: TeamMember = {
@@ -95,7 +109,7 @@ export function MountainRescueBoard() {
         firstName: firstName || 'New',
         lastName: lastNameParts.join(' ') || 'Resource',
         skills: [],
-        vehicleId: null,
+        assignee: null,
         role: 'default',
         type: type,
       };
@@ -110,13 +124,19 @@ export function MountainRescueBoard() {
     setTeamMembers(prev => prev.filter(m => m.id !== id));
   };
 
-  const handleRemoveVehicle = (id: string) => {
-    setVehicles(prev => prev.filter(v => v.id !== id));
+  const handleRemoveContainer = (id: string, type: 'vehicle' | 'team') => {
+    if (type === 'vehicle') {
+      setVehicles(prev => prev.filter(v => v.id !== id));
+    } else {
+      setTeams(prev => prev.filter(t => t.id !== id));
+    }
+
     setColumns(prev => prev.filter(c => c.id !== id));
+    
     setTeamMembers(produce(draft => {
       draft.forEach(member => {
-        if (member.vehicleId === id) {
-          member.vehicleId = null;
+        if (member.assignee?.id === id) {
+          member.assignee = null;
         }
       });
     }));
@@ -172,7 +192,7 @@ export function MountainRescueBoard() {
   const handleResizeStart = (e: MouseEvent, id: string, type: 'member' | 'column') => {
     e.stopPropagation();
     
-    const cardElement = (e.target as HTMLElement).closest<HTMLElement>('[data-member-id],[onmousedown]');
+    const cardElement = (e.target as HTMLElement).closest<HTMLElement>('[data-member-id],[data-column-id]');
     if (!cardElement) return;
 
     const { width, height } = cardElement.getBoundingClientRect();
@@ -234,14 +254,15 @@ export function MountainRescueBoard() {
     if (draggedItem && draggedItemType === 'member') {
       draggedItem.element?.remove();
       const targetElement = document.elementFromPoint(e.clientX, e.clientY);
-      const targetColumn = targetElement?.closest('[data-column-id]');
-      const targetColumnId = targetColumn?.getAttribute('data-column-id');
+      const targetColumnEl = targetElement?.closest('[data-column-id]');
+      const targetColumnId = targetColumnEl?.getAttribute('data-column-id');
+      const targetColumnType = targetColumnEl?.getAttribute('data-column-type') as 'vehicle' | 'team' | 'unassigned' | undefined;
 
-      let newVehicleId: string | null = null;
-      if (targetColumnId && vehicles.some(v => v.id === targetColumnId)) {
-          newVehicleId = targetColumnId;
+      let newAssignee: Assignee = null;
+      if (targetColumnId && targetColumnType && targetColumnType !== 'unassigned') {
+          newAssignee = { type: targetColumnType, id: targetColumnId };
       }
-      updateMember(draggedItem.id, { vehicleId: newVehicleId });
+      updateMember(draggedItem.id, { assignee: newAssignee });
     }
     
     setDraggedItem(null);
@@ -256,11 +277,18 @@ export function MountainRescueBoard() {
     }));
   };
 
-  const updateVehicle = (id: string, updates: Partial<Vehicle>) => {
-    setVehicles(produce(draft => {
-      const vehicle = draft.find(v => v.id === id);
-      if (vehicle) Object.assign(vehicle, updates);
-    }));
+  const updateContainer = (id: string, type: 'vehicle' | 'team', updates: Partial<Vehicle> | Partial<Team>) => {
+    if (type === 'vehicle') {
+      setVehicles(produce(draft => {
+        const vehicle = draft.find(v => v.id === id);
+        if (vehicle) Object.assign(vehicle, updates);
+      }));
+    } else {
+      setTeams(produce(draft => {
+        const team = draft.find(t => t.id === id);
+        if (team) Object.assign(team, updates);
+      }));
+    }
   };
 
   const updateColumn = (id: string, updates: Partial<Column>) => {
@@ -270,7 +298,7 @@ export function MountainRescueBoard() {
     }));
   };
   
-  const unassignedMembers = [...teamMembers.filter(m => m.vehicleId === null)].sort((a, b) => {
+  const unassignedMembers = [...teamMembers.filter(m => m.assignee === null)].sort((a, b) => {
     if (a.type === 'person' && b.type === 'equipment') return -1;
     if (a.type === 'equipment' && b.type === 'person') return 1;
     return 0;
@@ -299,6 +327,7 @@ export function MountainRescueBoard() {
               <AlertDialogAction onClick={() => handleCreateResource('person')}>Person</AlertDialogAction>
               <AlertDialogAction onClick={() => handleCreateResource('equipment')}>Equipment</AlertDialogAction>
               <AlertDialogAction onClick={() => handleCreateResource('vehicle')}>Vehicle</AlertDialogAction>
+              <AlertDialogAction onClick={() => handleCreateResource('team')}>Team</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
@@ -321,20 +350,24 @@ export function MountainRescueBoard() {
                 </NoSSR>
               );
             }
-            if (column.type === 'vehicle') {
-              const vehicle = vehicles.find(v => v.id === column.id);
-              if (!vehicle) return null;
+            if (column.type === 'vehicle' || column.type === 'team') {
+              const container = column.type === 'vehicle' ? vehicles.find(v => v.id === column.id) : teams.find(t => t.id === column.id);
+              if (!container) return null;
+              
+              const members = teamMembers.filter(m => m.assignee?.id === column.id);
+
               return (
-                <VehicleColumn
-                  key={vehicle.id}
-                  vehicle={vehicle}
-                  members={teamMembers.filter(m => m.vehicleId === vehicle.id)}
+                <ResourceColumn
+                  key={column.id}
+                  container={container}
+                  type={column.type}
+                  members={members}
                   allSkills={ALL_SKILLS}
                   position={column.position}
-                  onMouseDown={(e) => handleMouseDownOnColumn(e, vehicle.id)}
+                  onMouseDown={(e) => handleMouseDownOnColumn(e, column.id)}
                   updateMember={updateMember}
-                  updateVehicle={updateVehicle}
-                  onRemoveVehicle={handleRemoveVehicle}
+                  updateContainer={updateContainer}
+                  onRemoveContainer={handleRemoveContainer}
                   onResizeMemberStart={(e, id) => handleResizeStart(e, id, 'member')}
                   onMemberMouseDown={handleMouseDownOnMember}
                 />
@@ -346,6 +379,7 @@ export function MountainRescueBoard() {
       </div>
       <div 
         data-column-id="unassigned"
+        data-column-type="unassigned"
         className="w-full bg-background/50 border-t border-border p-2"
       >
         <h3 className="text-center font-bold text-sm mb-2 text-foreground/60 uppercase tracking-wider">Unassigned Resources</h3>
