@@ -11,7 +11,7 @@ export default function BoardPage({ params }: { params: { boardId: string } }) {
     notFound();
   }
 
-  return <BoardClientPage boardId={boardId} initialData={initialData} />;
+  return <BoardClientPage key={boardId} boardId={boardId} initialData={initialData} />;
 }
 
 export function generateStaticParams() {
