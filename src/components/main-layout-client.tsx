@@ -18,13 +18,15 @@ import {
 } from '@/components/ui/sidebar';
 import { LayoutGrid, UserPlus, Folder, Home, LogOut } from 'lucide-react';
 import { ALL_BOARDS } from '@/lib/mrt/board-data';
+import { FullscreenProvider, useFullscreen } from '@/hooks/use-fullscreen';
 
-export function MainLayoutClient({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function LayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { isMaximized } = useFullscreen();
+
+  if (isMaximized) {
+    return <main className="flex-1 w-full h-screen">{children}</main>;
+  }
 
   return (
     <SidebarProvider>
@@ -88,5 +90,19 @@ export function MainLayoutClient({
         {children}
       </SidebarInset>
     </SidebarProvider>
+  );
+}
+
+
+export function MainLayoutClient({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+
+  return (
+    <FullscreenProvider>
+      <LayoutContent>{children}</LayoutContent>
+    </FullscreenProvider>
   );
 }
