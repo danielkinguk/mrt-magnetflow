@@ -9,17 +9,17 @@ const HORIZONTAL_SPACING = 340;
 const VERTICAL_POSITION = 120;
 const TOOLBAR_POSITION = { x: 20, y: 20 };
 
-// The original page component, now renamed and used as the client boundary
-export function BoardClientPage({ 
-  boardId, 
-  initialData, 
-  setTidyUp 
-}: { 
-  boardId: string, 
-  initialData: BoardData,
-  setTidyUp?: (fn: () => void) => void 
+// The setTidyUp prop is now passed via React Context in MainLayoutClient, so we get it from there.
+// We need to define a prop for it to be passed down from the layout.
+export function BoardClientPage({
+  boardId,
+  initialData,
+  setTidyUp,
+}: {
+  boardId: string;
+  initialData: BoardData;
+  setTidyUp?: (fn: () => void) => void;
 }) {
-
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>(initialData.teamMembers);
   const [vehicles, setVehicles] = useState<Vehicle[]>(initialData.vehicles);
   const [teams, setTeams] = useState<Team[]>(initialData.teams);
@@ -29,7 +29,7 @@ export function BoardClientPage({
     ...data.teams.map((t, i) => ({ id: t.id, type: 'team' as const, position: { x: (i + data.vehicles.length) * HORIZONTAL_SPACING + 20, y: VERTICAL_POSITION } })),
     { id: 'toolbar', type: 'toolbar' as const, position: TOOLBAR_POSITION },
   ];
-  
+
   const [columns, setColumns] = useState<Column[]>(getInitialColumns(initialData));
 
   // Reset state when initialData changes. This ensures the board updates when switching between routes.
@@ -44,16 +44,16 @@ export function BoardClientPage({
     setColumns(produce(draft => {
       let vehicleIndex = 0;
       let teamIndex = 0;
-      
+
       draft.forEach(col => {
         if (col.type === 'vehicle') {
           col.position = { x: vehicleIndex * HORIZONTAL_SPACING + 20, y: VERTICAL_POSITION };
           vehicleIndex++;
         }
       });
-      
+
       const vehicleCount = vehicleIndex;
-      
+
       draft.forEach(col => {
         if (col.type === 'team') {
           col.position = { x: (teamIndex + vehicleCount) * HORIZONTAL_SPACING + 20, y: VERTICAL_POSITION };
@@ -70,7 +70,7 @@ export function BoardClientPage({
       setTidyUp(() => handleTidyUp);
     }
   }, [setTidyUp]);
-  
+
   const stateSetters = {
     member: setTeamMembers,
     vehicle: setVehicles,
@@ -101,11 +101,11 @@ export function BoardClientPage({
         name,
         color: `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`
       };
-      
+
       const stateSetter = type === 'vehicle' ? setVehicles : setTeams;
       // @ts-ignore
       stateSetter(prev => [...prev, newContainer]);
-      
+
       setColumns(prev => [...prev, { id: newId, type, position: newPosition }]);
     } else {
       const [firstName, ...lastNameParts] = name.split(' ');
@@ -125,13 +125,13 @@ export function BoardClientPage({
   const handleRemoveItem = (id: string, type: 'member' | 'vehicle' | 'team') => {
     if (type === 'member') {
       setTeamMembers(prev => prev.filter(m => m.id !== id));
-    } else { 
+    } else {
       const stateSetter = type === 'vehicle' ? setVehicles : setTeams;
       // @ts-ignore
       stateSetter(prev => prev.filter(item => item.id !== id));
-      
+
       setColumns(prev => prev.filter(c => c.id !== id));
-      
+
       setTeamMembers(produce(draft => {
         draft.forEach(member => {
           if (member.assignee?.id === id) {
