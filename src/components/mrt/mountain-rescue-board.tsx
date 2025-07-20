@@ -252,7 +252,11 @@ export function MountainRescueBoard() {
     }));
   };
   
-  const unassignedMembers = teamMembers.filter(m => m.vehicleId === null);
+  const unassignedMembers = [...teamMembers.filter(m => m.vehicleId === null)].sort((a, b) => {
+    if (a.type === 'person' && b.type === 'equipment') return -1;
+    if (a.type === 'equipment' && b.type === 'person') return 1;
+    return 0;
+  });
 
   return (
     <div

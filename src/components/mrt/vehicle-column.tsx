@@ -40,6 +40,12 @@ export function VehicleColumn({ vehicle, members, allSkills, position, onMouseDo
     }
   };
 
+  const sortedMembers = [...members].sort((a, b) => {
+    if (a.type === 'person' && b.type === 'equipment') return -1;
+    if (a.type === 'equipment' && b.type === 'person') return 1;
+    return 0;
+  });
+
   return (
     <div
       className="absolute"
@@ -69,7 +75,7 @@ export function VehicleColumn({ vehicle, members, allSkills, position, onMouseDo
           )}
         </CardHeader>
         <CardContent className="p-2 min-h-[200px] space-y-2">
-          {members.map(member => (
+          {sortedMembers.map(member => (
             <div key={member.id} className="mb-2">
               <TeamMemberCard 
                 member={member} 
