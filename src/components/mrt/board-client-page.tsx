@@ -9,8 +9,6 @@ const HORIZONTAL_SPACING = 340;
 const VERTICAL_POSITION = 120;
 const TOOLBAR_POSITION = { x: 20, y: 20 };
 
-// The setTidyUp prop is now passed via React Context in MainLayoutClient, so we get it from there.
-// We need to define a prop for it to be passed down from the layout.
 export function BoardClientPage({
   boardId,
   initialData,
@@ -75,7 +73,7 @@ export function BoardClientPage({
     if (setTidyUp) {
       setTidyUp(() => handleTidyUp);
     }
-  }, [setTidyUp]);
+  }, [setTidyUp, handleTidyUp]);
 
   const stateSetters = {
     member: setTeamMembers,
