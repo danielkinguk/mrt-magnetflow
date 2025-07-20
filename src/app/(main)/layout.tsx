@@ -16,7 +16,7 @@ import {
   SidebarGroupContent,
   SidebarInset,
 } from '@/components/ui/sidebar';
-import { LayoutGrid, UserPlus, Folder, Home } from 'lucide-react';
+import { LayoutGrid, UserPlus, Folder, Home, LogOut } from 'lucide-react';
 import { ALL_BOARDS } from '@/lib/mrt/board-data';
 
 export default function MainLayout({
@@ -47,6 +47,12 @@ export default function MainLayout({
               <SidebarMenuButton href="/invite" tooltip="Invite">
                 <UserPlus />
                 Invite
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton href="/logout" tooltip="Logout">
+                <LogOut />
+                Logout
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
