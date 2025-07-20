@@ -18,7 +18,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Header } from '../header';
 
 
 const GRID_SIZE = 20;
@@ -279,9 +278,8 @@ export function MountainRescueBoard() {
 
   return (
     <div
-      className="w-full h-screen relative flex flex-col bg-background"
+      className="w-full h-full relative flex flex-col bg-background"
     >
-      <Header />
       <div 
         className="flex-1 w-full h-full relative"
         onMouseMove={handleMouseMove}
