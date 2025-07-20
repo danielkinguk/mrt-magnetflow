@@ -1,10 +1,10 @@
 import { SidebarTrigger } from "./ui/sidebar";
 import { ThemeToggle } from "./theme-toggle";
 import { useFullscreen } from "@/hooks/use-fullscreen";
-import { Maximize, Minimize } from "lucide-react";
+import { Maximize, Minimize, RefreshCw } from "lucide-react";
 import { Button } from "./ui/button";
 
-export function Header() {
+export function Header({ onTidyUp }: { onTidyUp?: () => void }) {
   const { isMaximized, toggle } = useFullscreen();
 
   return (
@@ -14,6 +14,11 @@ export function Header() {
             <SidebarTrigger />
         </div>
         <div className="flex flex-1 items-center justify-end space-x-2">
+           {onTidyUp && (
+            <Button variant="outline" size="icon" onClick={onTidyUp} title="Tidy Up Board">
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+           )}
            <Button variant="outline" size="icon" onClick={toggle} title={isMaximized ? 'Minimize' : 'Maximize'}>
             {isMaximized ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
           </Button>

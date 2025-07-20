@@ -19,10 +19,23 @@ import {
 import { LayoutGrid, UserPlus, Folder, Home, LogOut } from 'lucide-react';
 import { ALL_BOARDS } from '@/lib/mrt/board-data';
 import { FullscreenProvider, useFullscreen } from '@/hooks/use-fullscreen';
+import React, { useState } from 'react';
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { isMaximized } = useFullscreen();
+  const [tidyUpFn, setTidyUpFn] = useState<(() => void) | undefined>(undefined);
+
+  const isBoardPage = pathname.startsWith('/boards/');
+
+  // Pass setTidyUpFn down to children
+  const childrenWithProps = React.Children.map(children, child => {
+    if (React.isValidElement(child)) {
+      // @ts-ignore
+      return React.cloneElement(child, { setTidyUp: setTidyUpFn });
+    }
+    return child;
+  });
 
   return (
     <SidebarProvider>
@@ -84,8 +97,8 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         </Sidebar>
       )}
       <SidebarInset className={isMaximized ? "ml-0 !p-0" : ""}>
-        <Header />
-        {children}
+        <Header onTidyUp={isBoardPage ? tidyUpFn : undefined} />
+        {childrenWithProps}
       </SidebarInset>
     </SidebarProvider>
   );

@@ -5,17 +5,29 @@ import { produce } from 'immer';
 import type { TeamMember, Vehicle, Team, Column, BoardData } from '@/lib/mrt/types';
 import { MountainRescueBoard } from '@/components/mrt/mountain-rescue-board';
 
+const HORIZONTAL_SPACING = 340;
+const VERTICAL_POSITION = 120;
+const TOOLBAR_POSITION = { x: 20, y: 20 };
+
 // The original page component, now renamed and used as the client boundary
-export function BoardClientPage({ boardId, initialData }: { boardId: string, initialData: BoardData }) {
+export function BoardClientPage({ 
+  boardId, 
+  initialData, 
+  setTidyUp 
+}: { 
+  boardId: string, 
+  initialData: BoardData,
+  setTidyUp?: (fn: () => void) => void 
+}) {
 
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>(initialData.teamMembers);
   const [vehicles, setVehicles] = useState<Vehicle[]>(initialData.vehicles);
   const [teams, setTeams] = useState<Team[]>(initialData.teams);
 
   const getInitialColumns = (data: BoardData): Column[] => [
-    ...data.vehicles.map((v, i) => ({ id: v.id, type: 'vehicle' as const, position: { x: i * 340 + 20, y: 120 } })),
-    ...data.teams.map((t, i) => ({ id: t.id, type: 'team' as const, position: { x: (i + data.vehicles.length) * 340 + 20, y: 120 } })),
-    { id: 'toolbar', type: 'toolbar' as const, position: { x: 20, y: 20 } },
+    ...data.vehicles.map((v, i) => ({ id: v.id, type: 'vehicle' as const, position: { x: i * HORIZONTAL_SPACING + 20, y: VERTICAL_POSITION } })),
+    ...data.teams.map((t, i) => ({ id: t.id, type: 'team' as const, position: { x: (i + data.vehicles.length) * HORIZONTAL_SPACING + 20, y: VERTICAL_POSITION } })),
+    { id: 'toolbar', type: 'toolbar' as const, position: TOOLBAR_POSITION },
   ];
   
   const [columns, setColumns] = useState<Column[]>(getInitialColumns(initialData));
@@ -27,6 +39,37 @@ export function BoardClientPage({ boardId, initialData }: { boardId: string, ini
     setTeams(initialData.teams);
     setColumns(getInitialColumns(initialData));
   }, [initialData]);
+
+  const handleTidyUp = () => {
+    setColumns(produce(draft => {
+      let vehicleIndex = 0;
+      let teamIndex = 0;
+      
+      draft.forEach(col => {
+        if (col.type === 'vehicle') {
+          col.position = { x: vehicleIndex * HORIZONTAL_SPACING + 20, y: VERTICAL_POSITION };
+          vehicleIndex++;
+        }
+      });
+      
+      const vehicleCount = vehicleIndex;
+      
+      draft.forEach(col => {
+        if (col.type === 'team') {
+          col.position = { x: (teamIndex + vehicleCount) * HORIZONTAL_SPACING + 20, y: VERTICAL_POSITION };
+          teamIndex++;
+        } else if (col.type === 'toolbar') {
+            col.position = TOOLBAR_POSITION;
+        }
+      });
+    }));
+  };
+
+  useEffect(() => {
+    if (setTidyUp) {
+      setTidyUp(() => handleTidyUp);
+    }
+  }, [setTidyUp]);
   
   const stateSetters = {
     member: setTeamMembers,
