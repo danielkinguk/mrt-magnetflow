@@ -56,7 +56,6 @@ export function TeamMemberCard({ member, skills, isUnassigned = false, onRemove,
         'p-2 flex items-center gap-2 bg-card shadow-sm hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing border group relative',
         {
           'bg-red-200/80 dark:bg-red-900/50': member.role === 'leader',
-          'border-l-4 border-accent': member.role === 'driver',
           'bg-sky-100 dark:bg-sky-950/70': member.type === 'equipment',
         }
       )}
