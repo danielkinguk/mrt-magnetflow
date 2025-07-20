@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, type MouseEvent, useCallback, useRef } from 'react';
@@ -18,6 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { cn } from '@/lib/utils';
 
 
 const GRID_SIZE = 20;
@@ -77,10 +79,10 @@ export function MountainRescueBoard() {
   const handleCreateResource = (type: 'person' | 'equipment' | 'vehicle' | 'team') => {
     const name = newResource.name;
     if (!name.trim()) return;
-
+  
     const newId = `${type}-${Date.now()}`;
     const newPosition = { x: 20, y: 500 };
-
+  
     if (type === 'vehicle' || type === 'team') {
       const newContainer = {
         id: newId,
@@ -112,10 +114,10 @@ export function MountainRescueBoard() {
   const handleRemoveItem = (id: string, type: 'member' | 'vehicle' | 'team') => {
     if (type === 'member') {
       setTeamMembers(prev => prev.filter(m => m.id !== id));
-    } else { // vehicle or team
-      if (type === 'vehicle') setVehicles(prev => prev.filter(v => v.id !== id));
-      if (type === 'team') setTeams(prev => prev.filter(t => t.id !== id));
-
+    } else { 
+      const stateSetter = type === 'vehicle' ? setVehicles : setTeams;
+      stateSetter(prev => prev.filter(item => item.id !== id));
+      
       setColumns(prev => prev.filter(c => c.id !== id));
       
       setTeamMembers(produce(draft => {
@@ -257,20 +259,22 @@ export function MountainRescueBoard() {
   };
 
   const updateItem = useCallback((id: string, type: 'member' | 'vehicle' | 'team' | 'column', updates: Partial<TeamMember | Vehicle | Team | Column>) => {
-    const stateSetters: Record<string, React.Dispatch<React.SetStateAction<any[]>>> = {
+    const stateSetters = {
       member: setTeamMembers,
       vehicle: setVehicles,
       team: setTeams,
       column: setColumns,
     };
-    const updater = produce((draft: any[]) => {
-      const item = draft.find((i) => i.id === id);
-      if (item) Object.assign(item, updates);
-    });
-    
-    const setter = stateSetters[type];
+  
+    const setter = stateSetters[type as keyof typeof stateSetters];
+  
     if (setter) {
-      setter(updater);
+      setter(produce((draft: any[]) => {
+        const item = draft.find(i => i.id === id);
+        if (item) {
+          Object.assign(item, updates);
+        }
+      }));
     }
   }, []);
   
@@ -285,7 +289,9 @@ export function MountainRescueBoard() {
       className="w-full h-full relative flex flex-col bg-background"
     >
       <div 
-        className="flex-1 w-full h-full relative"
+        className={cn("flex-1 w-full h-full relative", {
+          'select-none': !!draggedItem
+        })}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         ref={boardRef}
