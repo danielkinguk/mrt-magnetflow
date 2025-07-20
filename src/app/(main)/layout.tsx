@@ -1,3 +1,6 @@
+'use client';
+
+import { usePathname } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Logo } from '@/components/icons';
 import {
@@ -14,12 +17,15 @@ import {
   SidebarInset,
 } from '@/components/ui/sidebar';
 import { LayoutGrid, UserPlus, Folder } from 'lucide-react';
+import { ALL_BOARDS } from '@/lib/mrt/board-data';
 
 export default function MainLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+
   return (
     <SidebarProvider>
       <Sidebar>
@@ -49,36 +55,17 @@ export default function MainLayout({
             <SidebarGroupLabel>Boards</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton href="/cumbria">
-                    <Folder />
-                    Cumbria
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton href="/inspiration">
-                    <Folder />
-                    Inspiration
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton href="/personal">
-                    <Folder />
-                    Personal
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton href="/work">
-                    <Folder />
-                    Work
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton href="/mrt-board" isActive>
-                    <Folder />
-                    MRT Board
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                {ALL_BOARDS.map((board) => (
+                  <SidebarMenuItem key={board.id}>
+                    <SidebarMenuButton
+                      href={`/boards/${board.id}`}
+                      isActive={pathname === `/boards/${board.id}`}
+                    >
+                      <Folder />
+                      {board.name}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

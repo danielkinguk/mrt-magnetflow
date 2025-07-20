@@ -5,7 +5,8 @@ import { useState, type MouseEvent, useCallback, useRef } from 'react';
 import type { TeamMember, Vehicle, Skill, Column, Point, Team, Assignee } from '@/lib/mrt/types';
 import { ResourceColumn } from '@/components/mrt/resource-column';
 import { MrtToolbar } from '@/components/mrt/mrt-toolbar';
-import { INITIAL_TEAM_MEMBERS, INITIAL_VEHICLES, ALL_SKILLS, INITIAL_TEAMS } from '@/lib/mrt/data';
+import { ALL_SKILLS } from '@/lib/mrt/data';
+import type { BoardData } from '@/lib/mrt/board-data';
 import { produce } from 'immer';
 import { NoSSR } from '@/components/no-ssr';
 import { TeamMemberCard } from './team-member-card';
@@ -47,15 +48,20 @@ type NewResourceState = {
   name: string;
 }
 
-export function MountainRescueBoard() {
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(INITIAL_TEAM_MEMBERS);
-  const [vehicles, setVehicles] = useState<Vehicle[]>(INITIAL_VEHICLES);
-  const [teams, setTeams] = useState<Team[]>(INITIAL_TEAMS);
+interface MountainRescueBoardProps {
+  boardId: string;
+  initialData: BoardData;
+}
+
+export function MountainRescueBoard({ boardId, initialData }: MountainRescueBoardProps) {
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(initialData.teamMembers);
+  const [vehicles, setVehicles] = useState<Vehicle[]>(initialData.vehicles);
+  const [teams, setTeams] = useState<Team[]>(initialData.teams);
   const boardRef = useRef<HTMLDivElement>(null);
   
   const initialColumns: Column[] = [
-    ...INITIAL_VEHICLES.map((v, i) => ({ id: v.id, type: 'vehicle' as const, position: { x: i * 340 + 20, y: 120 } })),
-    ...INITIAL_TEAMS.map((t, i) => ({ id: t.id, type: 'team' as const, position: { x: (i + INITIAL_VEHICLES.length) * 340 + 20, y: 120 } })),
+    ...initialData.vehicles.map((v, i) => ({ id: v.id, type: 'vehicle' as const, position: { x: i * 340 + 20, y: 120 } })),
+    ...initialData.teams.map((t, i) => ({ id: t.id, type: 'team' as const, position: { x: (i + initialData.vehicles.length) * 340 + 20, y: 120 } })),
     { id: 'toolbar', type: 'toolbar' as const, position: { x: 20, y: 20 } },
   ];
 
@@ -89,6 +95,7 @@ export function MountainRescueBoard() {
         name,
         color: `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`
       };
+      
       const stateSetter = type === 'vehicle' ? setVehicles : setTeams;
       stateSetter(prev => [...prev, newContainer]);
       
@@ -116,6 +123,7 @@ export function MountainRescueBoard() {
       setTeamMembers(prev => prev.filter(m => m.id !== id));
     } else { 
       const stateSetter = type === 'vehicle' ? setVehicles : setTeams;
+      // @ts-ignore
       stateSetter(prev => prev.filter(item => item.id !== id));
       
       setColumns(prev => prev.filter(c => c.id !== id));
@@ -274,6 +282,7 @@ export function MountainRescueBoard() {
     const setter = stateSetters[type as keyof typeof stateSetters];
   
     if (setter) {
+      // @ts-ignore
       setter(produce((draft: any[]) => {
         const item = draft.find(i => i.id === id);
         if (item) {
