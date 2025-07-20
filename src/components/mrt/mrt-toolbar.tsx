@@ -4,7 +4,6 @@ import { useState, type MouseEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, ArrowDownRight } from 'lucide-react';
-import { Logo } from '@/components/icons';
 
 interface MrtToolbarProps {
   onAddResource: (name: string) => void;
@@ -40,8 +39,7 @@ export function MrtToolbar({ onAddResource, onMouseDown, onResizeStart, id, widt
       }}
     >
       <div className="flex items-center gap-2 px-2 mr-2">
-        <Logo className="h-6 w-6 text-primary" />
-        <span className="font-bold text-lg font-headline text-foreground">MagnetFlow</span>
+        <span className="font-bold text-lg font-headline text-foreground">MRT Board</span>
       </div>
       <div className="flex items-center gap-2">
         <Input 

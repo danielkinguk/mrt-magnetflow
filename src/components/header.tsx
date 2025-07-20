@@ -1,3 +1,4 @@
+import { Logo } from "./icons";
 import { ThemeToggle } from "./theme-toggle";
 
 export function Header() {
@@ -6,7 +7,8 @@ export function Header() {
       <div className="container flex h-14 max-w-screen-2xl items-center">
         <div className="mr-4 hidden md:flex">
           <a className="mr-6 flex items-center space-x-2" href="/">
-            <span className="hidden font-bold sm:inline-block">MRT Board</span>
+            <Logo className="h-6 w-6" />
+            <span className="hidden font-bold sm:inline-block">MagnetFlow</span>
           </a>
         </div>
         <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
