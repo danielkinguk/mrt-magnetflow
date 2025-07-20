@@ -5,11 +5,11 @@ import type { TeamMember, Vehicle, Skill, Column, Point } from '@/lib/mrt/types'
 import { VehicleColumn } from '@/components/mrt/vehicle-column';
 import { MrtToolbar } from '@/components/mrt/mrt-toolbar';
 import { INITIAL_TEAM_MEMBERS, INITIAL_VEHICLES, ALL_SKILLS } from '@/lib/mrt/data';
-import { UnassignedColumn } from '@/components/mrt/unassigned-column';
 import { produce } from 'immer';
 import { NoSSR } from '@/components/no-ssr';
 import { TeamMemberCard } from './team-member-card';
 import { cn } from '@/lib/utils';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 
 const GRID_SIZE = 20;
 const MIN_CARD_WIDTH = 200;
@@ -29,7 +29,6 @@ export function MountainRescueBoard() {
   
   const initialColumns: Column[] = [
     ...INITIAL_VEHICLES.map((v, i) => ({ id: v.id, type: 'vehicle' as const, position: { x: i * 340 + 20, y: 80 } })),
-    { id: 'unassigned', type: 'unassigned' as const, position: { x: INITIAL_VEHICLES.length * 340 + 20, y: 80 } },
     { id: 'toolbar', type: 'toolbar' as const, position: { x: 20, y: 20 } },
   ];
 
@@ -193,15 +192,17 @@ export function MountainRescueBoard() {
   const updateVehicle = (id: string, updates: Partial<Vehicle>) => {
     setVehicles(prev => prev.map(v => v.id === id ? { ...v, ...updates } : v));
   };
+  
+  const unassignedMembers = teamMembers.filter(m => m.vehicleId === null);
 
   return (
     <div
-      className="w-full h-full relative"
+      className="w-full h-full relative flex flex-col"
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       ref={boardRef}
     >
-      <div className="flex-1 p-4 w-full h-full">
+      <div className="flex-1 p-4 w-full h-full relative">
         {columns.map((column) => {
           if (column.type === 'toolbar') {
             return (
@@ -227,27 +228,32 @@ export function MountainRescueBoard() {
                 updateMember={updateMember}
                 onResizeMemberStart={handleResizeMemberStart}
                 onMemberMouseDown={handleMouseDownOnMember}
-                isMemberDragging={!!draggedMember}
               />
             );
           }
-          if (column.type === 'unassigned') {
-            return (
-              <UnassignedColumn
-                key={column.id}
-                members={teamMembers.filter(m => m.vehicleId === null)}
-                allSkills={ALL_SKILLS}
-                position={column.position}
-                onMouseDown={(e) => handleMouseDownOnColumn(e, column.id)}
-                onRemoveMember={handleRemoveMember}
-                updateMember={updateMember}
-                onResizeMemberStart={handleResizeMemberStart}
-                onMemberMouseDown={handleMouseDownOnMember}
-                isMemberDragging={!!draggedMember}
-              />
-            )
-          }
+          return null;
         })}
+      </div>
+      <div 
+        data-column-id="unassigned"
+        className="w-full bg-slate-100 dark:bg-slate-950/50 border-t border-slate-200 dark:border-slate-800 p-2"
+      >
+        <h3 className="text-center font-bold text-sm mb-2 text-slate-600 dark:text-slate-400 uppercase tracking-wider">Unassigned</h3>
+        <div className="flex gap-2 overflow-x-auto pb-2">
+            {unassignedMembers.map(member => (
+              <div key={member.id} className="flex-shrink-0">
+                <TeamMemberCard 
+                  member={member} 
+                  skills={ALL_SKILLS} 
+                  isUnassigned={true}
+                  onRemove={handleRemoveMember} 
+                  onUpdate={updateMember}
+                  onResizeStart={handleResizeMemberStart}
+                  onMouseDown={handleMouseDownOnMember}
+                />
+              </div>
+            ))}
+        </div>
       </div>
     </div>
   );

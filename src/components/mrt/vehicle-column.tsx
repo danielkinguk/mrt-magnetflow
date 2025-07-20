@@ -16,10 +16,9 @@ interface VehicleColumnProps {
   updateMember: (id: string, updates: Partial<TeamMember>) => void;
   onResizeMemberStart: (e: MouseEvent, memberId: string) => void;
   onMemberMouseDown: (e: MouseEvent<HTMLDivElement>, memberId: string) => void;
-  isMemberDragging: boolean;
 }
 
-export function VehicleColumn({ vehicle, members, allSkills, position, onMouseDown, updateVehicle, updateMember, onResizeMemberStart, onMemberMouseDown, isMemberDragging }: VehicleColumnProps) {
+export function VehicleColumn({ vehicle, members, allSkills, position, onMouseDown, updateVehicle, updateMember, onResizeMemberStart, onMemberMouseDown }: VehicleColumnProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(vehicle.name);
 
@@ -79,7 +78,6 @@ export function VehicleColumn({ vehicle, members, allSkills, position, onMouseDo
               onUpdate={updateMember} 
               onResizeStart={onResizeMemberStart}
               onMouseDown={onMemberMouseDown}
-              isDragging={isMemberDragging}
             />
           ))}
         </CardContent>

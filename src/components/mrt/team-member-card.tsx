@@ -11,14 +11,13 @@ interface TeamMemberCardProps {
   member: TeamMember;
   skills: Skill[];
   isUnassigned?: boolean;
-  isDragging?: boolean;
   onRemove?: (id: string) => void;
   onUpdate: (id: string, updates: Partial<TeamMember>) => void;
   onResizeStart: (e: MouseEvent, id: string) => void;
   onMouseDown: (e: MouseEvent<HTMLDivElement>, id: string) => void;
 }
 
-export function TeamMemberCard({ member, skills, isUnassigned = false, isDragging = false, onRemove, onUpdate, onResizeStart, onMouseDown }: TeamMemberCardProps) {
+export function TeamMemberCard({ member, skills, isUnassigned = false, onRemove, onUpdate, onResizeStart, onMouseDown }: TeamMemberCardProps) {
   const memberSkills = skills.filter(s => member.skills.includes(s.id));
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(`${member.firstName} ${member.lastName}`);
@@ -52,11 +51,10 @@ export function TeamMemberCard({ member, skills, isUnassigned = false, isDraggin
         height: member.height ? `${member.height}px` : 'auto',
       }}
       className={cn(
-        'p-2 flex items-center gap-2 mb-2 bg-white/90 dark:bg-slate-800/90 shadow-sm hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing border border-slate-200 dark:border-slate-700/80 group relative',
+        'p-2 flex items-center gap-2 bg-white/90 dark:bg-slate-800/90 shadow-sm hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing border border-slate-200 dark:border-slate-700/80 group relative',
         {
           'bg-red-200/80 dark:bg-red-900/50': member.role === 'leader',
           'border-l-4 border-yellow-500': member.role === 'driver',
-          'opacity-50': isDragging,
         }
       )}
     >
