@@ -25,6 +25,7 @@ export function MrtToolbar({ onAddResource, onMouseDown, onResizeStart, id, widt
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
+      e.preventDefault();
       handleAddClick();
     }
   }
