@@ -11,12 +11,14 @@ interface TeamMemberCardProps {
   member: TeamMember;
   skills: Skill[];
   isUnassigned?: boolean;
+  isDragging?: boolean;
   onRemove?: (id: string) => void;
   onUpdate: (id: string, updates: Partial<TeamMember>) => void;
   onResizeStart: (e: MouseEvent, id: string) => void;
+  onMouseDown: (e: MouseEvent<HTMLDivElement>, id: string) => void;
 }
 
-export function TeamMemberCard({ member, skills, isUnassigned = false, onRemove, onUpdate, onResizeStart }: TeamMemberCardProps) {
+export function TeamMemberCard({ member, skills, isUnassigned = false, isDragging = false, onRemove, onUpdate, onResizeStart, onMouseDown }: TeamMemberCardProps) {
   const memberSkills = skills.filter(s => member.skills.includes(s.id));
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(`${member.firstName} ${member.lastName}`);
@@ -43,6 +45,8 @@ export function TeamMemberCard({ member, skills, isUnassigned = false, onRemove,
 
   return (
     <Card
+      data-member-id={member.id}
+      onMouseDown={(e) => onMouseDown(e, member.id)}
       style={{
         width: member.width ? `${member.width}px` : 'auto',
         height: member.height ? `${member.height}px` : 'auto',
@@ -52,6 +56,7 @@ export function TeamMemberCard({ member, skills, isUnassigned = false, onRemove,
         {
           'bg-red-200/80 dark:bg-red-900/50': member.role === 'leader',
           'border-l-4 border-yellow-500': member.role === 'driver',
+          'opacity-50': isDragging,
         }
       )}
     >
@@ -66,6 +71,7 @@ export function TeamMemberCard({ member, skills, isUnassigned = false, onRemove,
             onKeyDown={handleKeyDown}
             className="h-7 text-sm"
             autoFocus
+            onMouseDown={(e) => e.stopPropagation()}
           />
         ) : (
           <p className="font-semibold text-sm text-slate-800 dark:text-slate-200">
@@ -87,12 +93,12 @@ export function TeamMemberCard({ member, skills, isUnassigned = false, onRemove,
         ))}
       </div>
        {isUnassigned && onRemove && (
-        <button onClick={() => onRemove(member.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive/70 hover:text-destructive">
+        <button onClick={() => onRemove(member.id)} onMouseDown={(e) => e.stopPropagation()} className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive/70 hover:text-destructive">
           <Trash2 className="h-4 w-4" />
         </button>
       )}
       <div
-        onMouseDown={(e) => onResizeStart(e, member.id)}
+        onMouseDown={(e) => { e.stopPropagation(); onResizeStart(e, member.id); }}
         className="absolute bottom-0 right-0 cursor-se-resize text-slate-400 hover:text-slate-600 dark:text-slate-600 dark:hover:text-slate-400 opacity-50 group-hover:opacity-100"
       >
         <ArrowDownRight className="w-3 h-3" />

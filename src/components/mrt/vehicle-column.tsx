@@ -15,9 +15,11 @@ interface VehicleColumnProps {
   updateVehicle: (id: string, updates: Partial<Vehicle>) => void;
   updateMember: (id: string, updates: Partial<TeamMember>) => void;
   onResizeMemberStart: (e: MouseEvent, memberId: string) => void;
+  onMemberMouseDown: (e: MouseEvent<HTMLDivElement>, memberId: string) => void;
+  isMemberDragging: boolean;
 }
 
-export function VehicleColumn({ vehicle, members, allSkills, position, onMouseDown, updateVehicle, updateMember, onResizeMemberStart }: VehicleColumnProps) {
+export function VehicleColumn({ vehicle, members, allSkills, position, onMouseDown, updateVehicle, updateMember, onResizeMemberStart, onMemberMouseDown, isMemberDragging }: VehicleColumnProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(vehicle.name);
 
@@ -46,7 +48,7 @@ export function VehicleColumn({ vehicle, members, allSkills, position, onMouseDo
       style={{ left: position.x, top: position.y }}
       onMouseDown={onMouseDown}
     >
-      <Card className="w-80 flex-shrink-0 bg-slate-100 dark:bg-slate-950/50 border-slate-200 dark:border-slate-800 cursor-move">
+      <Card data-column-id={vehicle.id} className="w-80 flex-shrink-0 bg-slate-100 dark:bg-slate-950/50 border-slate-200 dark:border-slate-800 cursor-move">
         <CardHeader className="p-2" onDoubleClick={handleDoubleClick}>
           {isEditing ? (
              <Input
@@ -57,6 +59,7 @@ export function VehicleColumn({ vehicle, members, allSkills, position, onMouseDo
                 onKeyDown={handleKeyDown}
                 className="h-9 text-lg font-bold text-center"
                 autoFocus
+                onMouseDown={(e) => e.stopPropagation()}
              />
           ) : (
             <CardTitle
@@ -69,14 +72,15 @@ export function VehicleColumn({ vehicle, members, allSkills, position, onMouseDo
         </CardHeader>
         <CardContent className="p-2 min-h-[200px]">
           {members.map(member => (
-            <div key={member.id} onMouseDown={(e) => e.stopPropagation()}>
-                <TeamMemberCard 
-                    member={member} 
-                    skills={allSkills} 
-                    onUpdate={updateMember} 
-                    onResizeStart={onResizeMemberStart}
-                />
-            </div>
+            <TeamMemberCard 
+              key={member.id}
+              member={member} 
+              skills={allSkills} 
+              onUpdate={updateMember} 
+              onResizeStart={onResizeMemberStart}
+              onMouseDown={onMemberMouseDown}
+              isDragging={isMemberDragging}
+            />
           ))}
         </CardContent>
       </Card>
