@@ -18,6 +18,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Header } from '../header';
 
 
 const GRID_SIZE = 20;
@@ -51,8 +52,8 @@ export function MountainRescueBoard() {
   const boardRef = useRef<HTMLDivElement>(null);
   
   const initialColumns: Column[] = [
-    ...INITIAL_VEHICLES.map((v, i) => ({ id: v.id, type: 'vehicle' as const, position: { x: i * 340 + 20, y: 80 } })),
-    { id: 'toolbar', type: 'toolbar' as const, position: { x: 20, y: 20 } },
+    ...INITIAL_VEHICLES.map((v, i) => ({ id: v.id, type: 'vehicle' as const, position: { x: i * 340 + 20, y: 120 } })),
+    { id: 'toolbar', type: 'toolbar' as const, position: { x: 20, y: 60 } },
   ];
 
   const [columns, setColumns] = useState<Column[]>(initialColumns);
@@ -255,65 +256,70 @@ export function MountainRescueBoard() {
 
   return (
     <div
-      className="w-full h-full relative flex flex-col bg-background"
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      ref={boardRef}
+      className="w-full h-screen relative flex flex-col bg-background"
     >
-      <AlertDialog open={newResource.open} onOpenChange={(open) => setNewResource(prev => ({...prev, open}))}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Create New Resource</AlertDialogTitle>
-            <AlertDialogDescription>
-              What type of resource is "{newResource.name}"?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => handleCreateResource('person')}>Person</AlertDialogAction>
-            <AlertDialogAction onClick={() => handleCreateResource('equipment')}>Equipment</AlertDialogAction>
-            <AlertDialogAction onClick={() => handleCreateResource('vehicle')}>Vehicle</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <Header />
+      <div 
+        className="flex-1 w-full h-full relative"
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        ref={boardRef}
+      >
+        <AlertDialog open={newResource.open} onOpenChange={(open) => setNewResource(prev => ({...prev, open}))}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Create New Resource</AlertDialogTitle>
+              <AlertDialogDescription>
+                What type of resource is "{newResource.name}"?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={() => handleCreateResource('person')}>Person</AlertDialogAction>
+              <AlertDialogAction onClick={() => handleCreateResource('equipment')}>Equipment</AlertDialogAction>
+              <AlertDialogAction onClick={() => handleCreateResource('vehicle')}>Vehicle</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
-      <div className="flex-1 p-4 w-full h-full relative">
-        {columns.map((column) => {
-          if (column.type === 'toolbar') {
-            return (
-              <NoSSR key={column.id}>
-                <div style={{ position: 'absolute', left: column.position.x, top: column.position.y }}>
-                  <MrtToolbar 
-                    id={column.id}
-                    onAddResource={handleOpenResourceDialog} 
-                    onMouseDown={(e) => handleMouseDownOnColumn(e, column.id)} 
-                    onResizeStart={(e) => handleResizeStart(e, column.id, 'column')}
-                    width={column.width}
-                    height={column.height}
-                  />
-                </div>
-              </NoSSR>
-            );
-          }
-          if (column.type === 'vehicle') {
-            const vehicle = vehicles.find(v => v.id === column.id);
-            if (!vehicle) return null;
-            return (
-              <VehicleColumn
-                key={vehicle.id}
-                vehicle={vehicle}
-                members={teamMembers.filter(m => m.vehicleId === vehicle.id)}
-                allSkills={ALL_SKILLS}
-                position={column.position}
-                onMouseDown={(e) => handleMouseDownOnColumn(e, vehicle.id)}
-                updateMember={updateMember}
-                onResizeMemberStart={(e, id) => handleResizeStart(e, id, 'member')}
-                onMemberMouseDown={handleMouseDownOnMember}
-              />
-            );
-          }
-          return null;
-        })}
+        <div className="p-4 w-full h-full relative">
+          {columns.map((column) => {
+            if (column.type === 'toolbar') {
+              return (
+                <NoSSR key={column.id}>
+                  <div style={{ position: 'absolute', left: column.position.x, top: column.position.y }}>
+                    <MrtToolbar 
+                      id={column.id}
+                      onAddResource={handleOpenResourceDialog} 
+                      onMouseDown={(e) => handleMouseDownOnColumn(e, column.id)} 
+                      onResizeStart={(e) => handleResizeStart(e, column.id, 'column')}
+                      width={column.width}
+                      height={column.height}
+                    />
+                  </div>
+                </NoSSR>
+              );
+            }
+            if (column.type === 'vehicle') {
+              const vehicle = vehicles.find(v => v.id === column.id);
+              if (!vehicle) return null;
+              return (
+                <VehicleColumn
+                  key={vehicle.id}
+                  vehicle={vehicle}
+                  members={teamMembers.filter(m => m.vehicleId === vehicle.id)}
+                  allSkills={ALL_SKILLS}
+                  position={column.position}
+                  onMouseDown={(e) => handleMouseDownOnColumn(e, vehicle.id)}
+                  updateMember={updateMember}
+                  onResizeMemberStart={(e, id) => handleResizeStart(e, id, 'member')}
+                  onMemberMouseDown={handleMouseDownOnMember}
+                />
+              );
+            }
+            return null;
+          })}
+        </div>
       </div>
       <div 
         data-column-id="unassigned"
@@ -322,7 +328,7 @@ export function MountainRescueBoard() {
         <h3 className="text-center font-bold text-sm mb-2 text-foreground/60 uppercase tracking-wider">Unassigned Resources</h3>
         <div className="grid grid-cols-5 gap-2 p-2">
             {unassignedMembers.map(member => (
-              <div key={member.id}>
+              <div key={member.id} className="mb-2">
                 <TeamMemberCard 
                   member={member} 
                   skills={ALL_SKILLS} 
