@@ -169,8 +169,6 @@ export function MountainRescueBoard() {
 
     boardRef.current?.appendChild(clonedElement);
 
-    cardElement.classList.add('opacity-0');
-
     setDraggedItemType('member');
     setDraggedItem({
       id: memberId,
@@ -256,11 +254,8 @@ export function MountainRescueBoard() {
         updateItem(draggedItem.id, 'member', { assignee: newAssignee });
       }
     } finally {
-      if (draggedItem && draggedItemType === 'member') {
-        draggedItem.element?.remove();
-        
-        const originalCard = document.querySelector(`[data-member-id="${draggedItem.id}"]`);
-        originalCard?.classList.remove('opacity-0');
+      if (draggedItem && draggedItem.element) {
+        draggedItem.element.remove();
       }
       setDraggedItem(null);
       setDraggedItemType(null);
