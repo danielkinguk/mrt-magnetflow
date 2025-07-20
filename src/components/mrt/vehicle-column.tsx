@@ -71,14 +71,15 @@ export function VehicleColumn({ vehicle, members, allSkills, position, onMouseDo
         </CardHeader>
         <CardContent className="p-2 min-h-[200px]">
           {members.map(member => (
-            <TeamMemberCard 
-              key={member.id}
-              member={member} 
-              skills={allSkills} 
-              onUpdate={updateMember} 
-              onResizeStart={onResizeMemberStart}
-              onMouseDown={onMemberMouseDown}
-            />
+            <div key={member.id} className="mb-2">
+              <TeamMemberCard 
+                member={member} 
+                skills={allSkills} 
+                onUpdate={updateMember} 
+                onResizeStart={onResizeMemberStart}
+                onMouseDown={onMemberMouseDown}
+              />
+            </div>
           ))}
         </CardContent>
       </Card>
