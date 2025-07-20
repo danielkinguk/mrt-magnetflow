@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, type MouseEvent, useCallback, useRef } from 'react';
@@ -6,8 +5,6 @@ import type { TeamMember, Vehicle, Skill, Column, Point, Team, Assignee } from '
 import { ResourceColumn } from '@/components/mrt/resource-column';
 import { MrtToolbar } from '@/components/mrt/mrt-toolbar';
 import { ALL_SKILLS } from '@/lib/mrt/data';
-import type { BoardData } from '@/lib/mrt/board-data';
-import { produce } from 'immer';
 import { NoSSR } from '@/components/no-ssr';
 import { TeamMemberCard } from './team-member-card';
 import {
@@ -49,23 +46,26 @@ type NewResourceState = {
 }
 
 interface MountainRescueBoardProps {
-  boardId: string;
-  initialData: BoardData;
+  teamMembers: TeamMember[];
+  vehicles: Vehicle[];
+  teams: Team[];
+  columns: Column[];
+  onUpdateItem: (id: string, type: 'member' | 'vehicle' | 'team' | 'column', updates: Partial<TeamMember | Vehicle | Team | Column>) => void;
+  onCreateResource: (type: 'person' | 'equipment' | 'vehicle' | 'team', name: string) => void;
+  onRemoveItem: (id: string, type: 'member' | 'vehicle' | 'team') => void;
 }
 
-export function MountainRescueBoard({ boardId, initialData }: MountainRescueBoardProps) {
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(initialData.teamMembers);
-  const [vehicles, setVehicles] = useState<Vehicle[]>(initialData.vehicles);
-  const [teams, setTeams] = useState<Team[]>(initialData.teams);
+export function MountainRescueBoard({ 
+  teamMembers, 
+  vehicles, 
+  teams, 
+  columns, 
+  onUpdateItem, 
+  onCreateResource, 
+  onRemoveItem 
+}: MountainRescueBoardProps) {
   const boardRef = useRef<HTMLDivElement>(null);
   
-  const initialColumns: Column[] = [
-    ...initialData.vehicles.map((v, i) => ({ id: v.id, type: 'vehicle' as const, position: { x: i * 340 + 20, y: 120 } })),
-    ...initialData.teams.map((t, i) => ({ id: t.id, type: 'team' as const, position: { x: (i + initialData.vehicles.length) * 340 + 20, y: 120 } })),
-    { id: 'toolbar', type: 'toolbar' as const, position: { x: 20, y: 20 } },
-  ];
-
-  const [columns, setColumns] = useState<Column[]>(initialColumns);
   const [draggedItem, setDraggedItem] = useState<DraggedItem | null>(null);
   const [draggedItemType, setDraggedItemType] = useState<'column' | 'member' | null>(null);
   const [resizedItem, setResizedItem] = useState<ResizedItem | null>(null);
@@ -85,57 +85,8 @@ export function MountainRescueBoard({ boardId, initialData }: MountainRescueBoar
   const handleCreateResource = (type: 'person' | 'equipment' | 'vehicle' | 'team') => {
     const name = newResource.name;
     if (!name.trim()) return;
-  
-    const newId = `${type}-${Date.now()}`;
-    const newPosition = { x: 20, y: 500 };
-  
-    if (type === 'vehicle' || type === 'team') {
-      const newContainer = {
-        id: newId,
-        name,
-        color: `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`
-      };
-      
-      const stateSetter = type === 'vehicle' ? setVehicles : setTeams;
-      stateSetter(prev => [...prev, newContainer]);
-      
-      setColumns(prev => [...prev, { id: newId, type, position: newPosition }]);
-    } else { // person or equipment
-      const [firstName, ...lastNameParts] = name.split(' ');
-      const newMember: TeamMember = {
-        id: newId,
-        firstName: firstName || 'New',
-        lastName: lastNameParts.join(' ') || 'Resource',
-        skills: [],
-        assignee: null,
-        role: 'default',
-        type: type,
-      };
-      setTeamMembers(prev => [...prev, newMember]);
-    }
-    
+    onCreateResource(type, name);
     setNewResource({ open: false, name: '' });
-  };
-
-
-  const handleRemoveItem = (id: string, type: 'member' | 'vehicle' | 'team') => {
-    if (type === 'member') {
-      setTeamMembers(prev => prev.filter(m => m.id !== id));
-    } else { 
-      const stateSetter = type === 'vehicle' ? setVehicles : setTeams;
-      // @ts-ignore
-      stateSetter(prev => prev.filter(item => item.id !== id));
-      
-      setColumns(prev => prev.filter(c => c.id !== id));
-      
-      setTeamMembers(produce(draft => {
-        draft.forEach(member => {
-          if (member.assignee?.id === id) {
-            member.assignee = null;
-          }
-        });
-      }));
-    }
   };
   
   const handleMouseDownOnColumn = (e: MouseEvent, id: string) => {
@@ -223,7 +174,7 @@ export function MountainRescueBoard({ boardId, initialData }: MountainRescueBoar
         newX = Math.round(newX / GRID_SIZE) * GRID_SIZE;
         newY = Math.round(newY / GRID_SIZE) * GRID_SIZE;
 
-        updateItem(draggedItem.id, 'column', { position: { x: newX, y: newY } });
+        onUpdateItem(draggedItem.id, 'column', { position: { x: newX, y: newY } });
 
       } else if (draggedItemType === 'member' && draggedItem.element) {
           const newX = boardPos.x - draggedItem.offset.x;
@@ -238,11 +189,11 @@ export function MountainRescueBoard({ boardId, initialData }: MountainRescueBoar
         if (resizedItem.type === 'member') {
           const newWidth = Math.max(MIN_CARD_WIDTH, resizedItem.initialSize.width + dx);
           const newHeight = Math.max(MIN_CARD_HEIGHT, resizedItem.initialSize.height + dy);
-          updateItem(resizedItem.id, 'member', { width: newWidth, height: newHeight });
+          onUpdateItem(resizedItem.id, 'member', { width: newWidth, height: newHeight });
         } else if (resizedItem.type === 'column') {
           const newWidth = Math.max(MIN_TOOLBAR_WIDTH, resizedItem.initialSize.width + dx);
           const newHeight = Math.max(MIN_TOOLBAR_HEIGHT, resizedItem.initialSize.height + dy);
-          updateItem(resizedItem.id, 'column', { width: newWidth, height: newHeight });
+          onUpdateItem(resizedItem.id, 'column', { width: newWidth, height: newHeight });
         }
     }
   };
@@ -259,7 +210,7 @@ export function MountainRescueBoard({ boardId, initialData }: MountainRescueBoar
         if (targetColumnId && targetColumnType && targetColumnType !== 'unassigned') {
             newAssignee = { type: targetColumnType, id: targetColumnId };
         }
-        updateItem(draggedItem.id, 'member', { assignee: newAssignee });
+        onUpdateItem(draggedItem.id, 'member', { assignee: newAssignee });
       }
     } finally {
       if (draggedItem && draggedItem.element) {
@@ -270,27 +221,6 @@ export function MountainRescueBoard({ boardId, initialData }: MountainRescueBoar
       setResizedItem(null);
     }
   };
-
-  const updateItem = useCallback((id: string, type: 'member' | 'vehicle' | 'team' | 'column', updates: Partial<TeamMember | Vehicle | Team | Column>) => {
-    const stateSetters = {
-      member: setTeamMembers,
-      vehicle: setVehicles,
-      team: setTeams,
-      column: setColumns,
-    };
-  
-    const setter = stateSetters[type as keyof typeof stateSetters];
-  
-    if (setter) {
-      // @ts-ignore
-      setter(produce((draft: any[]) => {
-        const item = draft.find(i => i.id === id);
-        if (item) {
-          Object.assign(item, updates);
-        }
-      }));
-    }
-  }, []);
   
   const unassignedMembers = [...teamMembers.filter(m => m.assignee === null)].sort((a, b) => {
     if (a.type === 'person' && b.type === 'equipment') return -1;
@@ -361,8 +291,8 @@ export function MountainRescueBoard({ boardId, initialData }: MountainRescueBoar
                   allSkills={ALL_SKILLS}
                   position={column.position}
                   onMouseDown={(e) => handleMouseDownOnColumn(e, column.id)}
-                  onUpdateItem={updateItem}
-                  onRemoveItem={handleRemoveItem}
+                  onUpdateItem={onUpdateItem}
+                  onRemoveItem={onRemoveItem}
                   onResizeMemberStart={(e, id) => handleResizeStart(e, id, 'member')}
                   onMemberMouseDown={handleMouseDownOnMember}
                 />
@@ -385,8 +315,8 @@ export function MountainRescueBoard({ boardId, initialData }: MountainRescueBoar
                   member={member} 
                   skills={ALL_SKILLS} 
                   isUnassigned={true}
-                  onRemove={() => handleRemoveItem(member.id, 'member')} 
-                  onUpdate={(updates) => updateItem(member.id, 'member', updates)}
+                  onRemove={() => onRemoveItem(member.id, 'member')} 
+                  onUpdate={(updates) => onUpdateItem(member.id, 'member', updates)}
                   onResizeStart={(e, id) => handleResizeStart(e, id, 'member')}
                   onMouseDown={handleMouseDownOnMember}
                 />
