@@ -110,6 +110,18 @@ export function MountainRescueBoard() {
   const handleRemoveMember = (id: string) => {
     setTeamMembers(prev => prev.filter(m => m.id !== id));
   };
+
+  const handleRemoveVehicle = (id: string) => {
+    setVehicles(prev => prev.filter(v => v.id !== id));
+    setColumns(prev => prev.filter(c => c.id !== id));
+    setTeamMembers(produce(draft => {
+      draft.forEach(member => {
+        if (member.vehicleId === id) {
+          member.vehicleId = null;
+        }
+      });
+    }));
+  };
   
   const handleMouseDownOnColumn = (e: MouseEvent, id: string) => {
     e.stopPropagation();
@@ -316,6 +328,7 @@ export function MountainRescueBoard() {
                   position={column.position}
                   onMouseDown={(e) => handleMouseDownOnColumn(e, vehicle.id)}
                   updateMember={updateMember}
+                  onRemoveVehicle={handleRemoveVehicle}
                   onResizeMemberStart={(e, id) => handleResizeStart(e, id, 'member')}
                   onMemberMouseDown={handleMouseDownOnMember}
                 />

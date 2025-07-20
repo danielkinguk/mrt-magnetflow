@@ -5,6 +5,7 @@ import type { Vehicle, TeamMember, Skill, Point } from '@/lib/mrt/types';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { TeamMemberCard } from '@/components/mrt/team-member-card';
 import { Input } from '../ui/input';
+import { Trash2 } from 'lucide-react';
 
 interface VehicleColumnProps {
   vehicle: Vehicle;
@@ -13,11 +14,12 @@ interface VehicleColumnProps {
   position: Point;
   onMouseDown: (e: MouseEvent) => void;
   updateMember: (id: string, updates: Partial<TeamMember>) => void;
+  onRemoveVehicle: (id: string) => void;
   onResizeMemberStart: (e: MouseEvent, memberId: string) => void;
   onMemberMouseDown: (e: MouseEvent<HTMLDivElement>, memberId: string) => void;
 }
 
-export function VehicleColumn({ vehicle, members, allSkills, position, onMouseDown, updateMember, onResizeMemberStart, onMemberMouseDown }: VehicleColumnProps) {
+export function VehicleColumn({ vehicle, members, allSkills, position, onMouseDown, updateMember, onRemoveVehicle, onResizeMemberStart, onMemberMouseDown }: VehicleColumnProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(vehicle.name);
 
@@ -52,7 +54,7 @@ export function VehicleColumn({ vehicle, members, allSkills, position, onMouseDo
       style={{ left: position.x, top: position.y }}
       onMouseDown={onMouseDown}
     >
-      <Card data-column-id={vehicle.id} className="w-80 flex-shrink-0 bg-card/80 border cursor-move">
+      <Card data-column-id={vehicle.id} className="w-80 flex-shrink-0 bg-card/80 border cursor-move group relative">
         <CardHeader className="p-2" onDoubleClick={handleDoubleClick}>
           {isEditing ? (
              <Input
@@ -74,6 +76,14 @@ export function VehicleColumn({ vehicle, members, allSkills, position, onMouseDo
             </CardTitle>
           )}
         </CardHeader>
+        <button
+          className="absolute top-2 right-2 w-6 h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center cursor-pointer hover:bg-destructive/90 opacity-0 group-hover:opacity-100 transition-opacity"
+          onClick={(e) => { e.stopPropagation(); onRemoveVehicle(vehicle.id); }}
+          onMouseDown={(e) => e.stopPropagation()}
+          title="Delete vehicle"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
         <CardContent className="p-2 min-h-[200px] space-y-2">
           {sortedMembers.map(member => (
             <div key={member.id} className="mb-2">
