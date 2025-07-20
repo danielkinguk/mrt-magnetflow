@@ -257,6 +257,13 @@ export function MountainRescueBoard() {
     }));
   };
 
+  const updateVehicle = (id: string, updates: Partial<Vehicle>) => {
+    setVehicles(produce(draft => {
+      const vehicle = draft.find(v => v.id === id);
+      if (vehicle) Object.assign(vehicle, updates);
+    }));
+  };
+
   const updateColumn = (id: string, updates: Partial<Column>) => {
     setColumns(produce(draft => {
         const column = draft.find(c => c.id === id);
@@ -328,6 +335,7 @@ export function MountainRescueBoard() {
                   position={column.position}
                   onMouseDown={(e) => handleMouseDownOnColumn(e, vehicle.id)}
                   updateMember={updateMember}
+                  updateVehicle={updateVehicle}
                   onRemoveVehicle={handleRemoveVehicle}
                   onResizeMemberStart={(e, id) => handleResizeStart(e, id, 'member')}
                   onMemberMouseDown={handleMouseDownOnMember}

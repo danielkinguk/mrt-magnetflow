@@ -14,12 +14,13 @@ interface VehicleColumnProps {
   position: Point;
   onMouseDown: (e: MouseEvent) => void;
   updateMember: (id: string, updates: Partial<TeamMember>) => void;
+  updateVehicle: (id: string, updates: Partial<Vehicle>) => void;
   onRemoveVehicle: (id: string) => void;
   onResizeMemberStart: (e: MouseEvent, memberId: string) => void;
   onMemberMouseDown: (e: MouseEvent<HTMLDivElement>, memberId: string) => void;
 }
 
-export function VehicleColumn({ vehicle, members, allSkills, position, onMouseDown, updateMember, onRemoveVehicle, onResizeMemberStart, onMemberMouseDown }: VehicleColumnProps) {
+export function VehicleColumn({ vehicle, members, allSkills, position, onMouseDown, updateMember, updateVehicle, onRemoveVehicle, onResizeMemberStart, onMemberMouseDown }: VehicleColumnProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(vehicle.name);
 
@@ -33,7 +34,9 @@ export function VehicleColumn({ vehicle, members, allSkills, position, onMouseDo
 
   const handleBlur = () => {
     setIsEditing(false);
-    // This should be handled by a central update function, but for now we leave it
+    if (name !== vehicle.name) {
+      updateVehicle(vehicle.id, { name });
+    }
   };
   
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
