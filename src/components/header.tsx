@@ -12,7 +12,7 @@ export function Header() {
         <div className="flex flex-1 items-center justify-end space-x-4">
           <ThemeToggle />
           <div className="p-1 border border-border rounded-md">
-            <Image src="/images/logo.png" alt="DK Apps Logo" width={100} height={36} />
+            <Image src="https://placehold.co/100x36.png" alt="App Logo" width={100} height={36} data-ai-hint="logo" />
           </div>
         </div>
       </div>
