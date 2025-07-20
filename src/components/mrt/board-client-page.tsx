@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { produce } from 'immer';
 import type { TeamMember, Vehicle, Team, Column, BoardData } from '@/lib/mrt/types';
 import { MountainRescueBoard } from '@/components/mrt/mountain-rescue-board';
@@ -20,13 +20,13 @@ export function BoardClientPage({ boardId, initialData }: { boardId: string, ini
   
   const [columns, setColumns] = useState<Column[]>(getInitialColumns(initialData));
 
-  // Reset state when initialData changes
-  useState(() => {
+  // Reset state when initialData changes. This ensures the board updates when switching between routes.
+  useEffect(() => {
     setTeamMembers(initialData.teamMembers);
     setVehicles(initialData.vehicles);
     setTeams(initialData.teams);
     setColumns(getInitialColumns(initialData));
-  });
+  }, [initialData]);
   
   const stateSetters = {
     member: setTeamMembers,
