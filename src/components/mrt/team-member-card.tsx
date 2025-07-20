@@ -11,13 +11,14 @@ interface TeamMemberCardProps {
   member: TeamMember;
   skills: Skill[];
   isUnassigned?: boolean;
+  isFloating?: boolean;
   onRemove?: () => void;
   onUpdate: (updates: Partial<TeamMember>) => void;
   onResizeStart: (e: MouseEvent, id: string) => void;
   onMouseDown: (e: MouseEvent<HTMLDivElement>, id: string) => void;
 }
 
-export function TeamMemberCard({ member, skills, isUnassigned = false, onRemove, onUpdate, onResizeStart, onMouseDown }: TeamMemberCardProps) {
+export function TeamMemberCard({ member, skills, isUnassigned = false, isFloating = false, onRemove, onUpdate, onResizeStart, onMouseDown }: TeamMemberCardProps) {
   const memberSkills = skills.filter(s => member.skills.includes(s.id));
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(`${member.firstName} ${member.lastName}`);
@@ -57,6 +58,7 @@ export function TeamMemberCard({ member, skills, isUnassigned = false, onRemove,
         {
           'bg-red-200/80 dark:bg-red-900/50': member.role === 'leader',
           'bg-sky-100 dark:bg-sky-950/70': member.type === 'equipment',
+          'opacity-75 z-50': isFloating,
         }
       )}
     >
@@ -95,7 +97,7 @@ export function TeamMemberCard({ member, skills, isUnassigned = false, onRemove,
           ))}
         </div>
       )}
-       {isUnassigned && onRemove && (
+       {(isUnassigned || isFloating) && onRemove && (
         <button onClick={onRemove} onMouseDown={(e) => e.stopPropagation()} className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive/70 hover:text-destructive">
           <Trash2 className="h-4 w-4" />
         </button>

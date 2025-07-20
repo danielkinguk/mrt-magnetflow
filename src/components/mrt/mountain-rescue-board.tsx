@@ -29,8 +29,9 @@ const MIN_TOOLBAR_HEIGHT = 52;
 
 type DraggedItem = {
   id: string;
+  type: 'member' | 'column';
   offset: Point;
-  element?: HTMLElement;
+  initialPosition?: Point;
 };
 
 type ResizedItem = { 
@@ -67,7 +68,6 @@ export function MountainRescueBoard({
   const boardRef = useRef<HTMLDivElement>(null);
   
   const [draggedItem, setDraggedItem] = useState<DraggedItem | null>(null);
-  const [draggedItemType, setDraggedItemType] = useState<'column' | 'member' | null>(null);
   const [resizedItem, setResizedItem] = useState<ResizedItem | null>(null);
   const [newResource, setNewResource] = useState<NewResourceState>({ open: false, name: '' });
 
@@ -94,45 +94,43 @@ export function MountainRescueBoard({
     const column = columns.find(c => c.id === id);
     if (!column) return;
     const boardPos = getBoardCoordinates(e);
-    setDraggedItemType('column');
     setDraggedItem({
       id,
+      type: 'column',
       offset: { x: boardPos.x - column.position.x, y: boardPos.y - column.position.y },
     });
   };
 
   const handleMouseDownOnMember = (e: MouseEvent<HTMLDivElement>, memberId: string) => {
     e.stopPropagation();
+    const member = teamMembers.find(m => m.id === memberId);
+    if (!member) return;
+    
     const cardElement = e.currentTarget as HTMLDivElement;
     const cardRect = cardElement.getBoundingClientRect();
     const boardRect = boardRef.current?.getBoundingClientRect();
 
     if (!boardRect) return;
 
-    const startPos = {
-      x: cardRect.left - boardRect.left,
-      y: cardRect.top - boardRect.top,
-    };
+    let initialPosition = member.position;
+    
+    if (!initialPosition) {
+        // If the member doesn't have an absolute position, calculate it
+        initialPosition = {
+          x: cardRect.left - boardRect.left,
+          y: cardRect.top - boardRect.top,
+        };
+        // Set it on the member immediately so it can be rendered absolutely
+        onUpdateItem(memberId, 'member', { position: initialPosition, assignee: null });
+    }
     
     const boardPos = getBoardCoordinates(e);
 
-    const clonedElement = cardElement.cloneNode(true) as HTMLElement;
-    clonedElement.style.position = 'absolute';
-    clonedElement.style.left = `${startPos.x}px`;
-    clonedElement.style.top = `${startPos.y}px`;
-    clonedElement.style.width = `${cardRect.width}px`;
-    clonedElement.style.height = `${cardRect.height}px`;
-    clonedElement.style.zIndex = '100';
-    clonedElement.style.pointerEvents = 'none';
-    clonedElement.classList.add('opacity-75');
-
-    boardRef.current?.appendChild(clonedElement);
-
-    setDraggedItemType('member');
     setDraggedItem({
       id: memberId,
-      offset: { x: boardPos.x - startPos.x, y: boardPos.y - startPos.y },
-      element: clonedElement,
+      type: 'member',
+      offset: { x: boardPos.x - initialPosition.x, y: boardPos.y - initialPosition.y },
+      initialPosition,
     });
   };
 
@@ -167,20 +165,16 @@ export function MountainRescueBoard({
     const boardPos = getBoardCoordinates(e);
 
     if (draggedItem) {
-      if (draggedItemType === 'column') {
-        let newX = boardPos.x - draggedItem.offset.x;
-        let newY = boardPos.y - draggedItem.offset.y;
-        
-        newX = Math.round(newX / GRID_SIZE) * GRID_SIZE;
-        newY = Math.round(newY / GRID_SIZE) * GRID_SIZE;
+      let newX = boardPos.x - draggedItem.offset.x;
+      let newY = boardPos.y - draggedItem.offset.y;
+      
+      newX = Math.round(newX / GRID_SIZE) * GRID_SIZE;
+      newY = Math.round(newY / GRID_SIZE) * GRID_SIZE;
 
+      if (draggedItem.type === 'column') {
         onUpdateItem(draggedItem.id, 'column', { position: { x: newX, y: newY } });
-
-      } else if (draggedItemType === 'member' && draggedItem.element) {
-          const newX = boardPos.x - draggedItem.offset.x;
-          const newY = boardPos.y - draggedItem.offset.y;
-          draggedItem.element.style.left = `${newX}px`;
-          draggedItem.element.style.top = `${newY}px`;
+      } else if (draggedItem.type === 'member') {
+        onUpdateItem(draggedItem.id, 'member', { position: { x: newX, y: newY } });
       }
     } else if (resizedItem) {
         const dx = e.clientX - resizedItem.initialPos.x;
@@ -200,33 +194,32 @@ export function MountainRescueBoard({
   
   const handleMouseUp = (e: React.MouseEvent<HTMLElement>) => {
     try {
-      if (draggedItem && draggedItemType === 'member') {
+      if (draggedItem && draggedItem.type === 'member') {
         const targetElement = document.elementFromPoint(e.clientX, e.clientY);
         const targetColumnEl = targetElement?.closest('[data-column-id]');
         const targetColumnId = targetColumnEl?.getAttribute('data-column-id');
         const targetColumnType = targetColumnEl?.getAttribute('data-column-type') as 'vehicle' | 'team' | 'unassigned' | undefined;
   
         let newAssignee: Assignee = null;
-        if (targetColumnId && targetColumnType && targetColumnType !== 'unassigned') {
-            newAssignee = { type: targetColumnType, id: targetColumnId };
+        if (targetColumnId && targetColumnType && ['vehicle', 'team'].includes(targetColumnType)) {
+            newAssignee = { type: targetColumnType as 'vehicle' | 'team', id: targetColumnId };
         }
-        onUpdateItem(draggedItem.id, 'member', { assignee: newAssignee });
+
+        onUpdateItem(draggedItem.id, 'member', { assignee: newAssignee, position: undefined });
       }
     } finally {
-      if (draggedItem && draggedItem.element) {
-        draggedItem.element.remove();
-      }
       setDraggedItem(null);
-      setDraggedItemType(null);
       setResizedItem(null);
     }
   };
   
-  const unassignedMembers = [...teamMembers.filter(m => m.assignee === null)].sort((a, b) => {
+  const unassignedMembers = [...teamMembers.filter(m => m.assignee === null && m.position === undefined)].sort((a, b) => {
     if (a.type === 'person' && b.type === 'equipment') return -1;
     if (a.type === 'equipment' && b.type === 'person') return 1;
     return 0;
   });
+
+  const floatingMembers = teamMembers.filter(m => m.position !== undefined);
 
   return (
     <div
@@ -280,7 +273,7 @@ export function MountainRescueBoard({
               const container = column.type === 'vehicle' ? vehicles.find(v => v.id === column.id) : teams.find(t => t.id === column.id);
               if (!container) return null;
               
-              const members = teamMembers.filter(m => m.assignee?.id === column.id);
+              const members = teamMembers.filter(m => m.assignee?.id === column.id && m.position === undefined);
 
               return (
                 <ResourceColumn
@@ -300,6 +293,22 @@ export function MountainRescueBoard({
             }
             return null;
           })}
+
+          {/* Render floating members */}
+          {floatingMembers.map(member => (
+              <div key={member.id} className="absolute" style={{left: member.position!.x, top: member.position!.y}}>
+                <TeamMemberCard 
+                  member={member} 
+                  skills={ALL_SKILLS} 
+                  isFloating={true}
+                  onRemove={() => onRemoveItem(member.id, 'member')} 
+                  onUpdate={(updates) => onUpdateItem(member.id, 'member', updates)}
+                  onResizeStart={(e, id) => handleResizeStart(e, id, 'member')}
+                  onMouseDown={handleMouseDownOnMember}
+                />
+              </div>
+          ))}
+
         </div>
       </div>
       <div 

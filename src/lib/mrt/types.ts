@@ -25,6 +25,7 @@ export type TeamMember = {
   width?: number;
   height?: number;
   type: 'person' | 'equipment';
+  position?: Point;
 };
 
 export type Vehicle = {

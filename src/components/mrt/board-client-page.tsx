@@ -63,6 +63,12 @@ export function BoardClientPage({
         }
       });
     }));
+
+    setTeamMembers(produce(draft => {
+        draft.forEach(member => {
+            member.position = undefined;
+        });
+    }));
   };
 
   useEffect(() => {
@@ -117,6 +123,7 @@ export function BoardClientPage({
         assignee: null,
         role: 'default',
         type: type,
+        position: undefined,
       };
       setTeamMembers(prev => [...prev, newMember]);
     }
