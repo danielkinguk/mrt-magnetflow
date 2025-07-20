@@ -193,8 +193,16 @@ export function MountainRescueBoard({
   };
   
   const handleMouseUp = (e: React.MouseEvent<HTMLElement>) => {
-    try {
-      if (draggedItem && draggedItem.type === 'member') {
+    if (draggedItem && draggedItem.type === 'member') {
+      const draggedEl = document.querySelector(`[data-member-id="${draggedItem.id}"]`) as HTMLElement;
+      let originalPointerEvents: string | null = null;
+  
+      if (draggedEl) {
+        originalPointerEvents = draggedEl.style.pointerEvents;
+        draggedEl.style.pointerEvents = 'none';
+      }
+  
+      try {
         const targetElement = document.elementFromPoint(e.clientX, e.clientY);
         const targetColumnEl = targetElement?.closest('[data-column-id]');
         const targetColumnId = targetColumnEl?.getAttribute('data-column-id');
@@ -202,12 +210,18 @@ export function MountainRescueBoard({
   
         let newAssignee: Assignee = null;
         if (targetColumnId && targetColumnType && ['vehicle', 'team'].includes(targetColumnType)) {
-            newAssignee = { type: targetColumnType as 'vehicle' | 'team', id: targetColumnId };
+          newAssignee = { type: targetColumnType as 'vehicle' | 'team', id: targetColumnId };
         }
-
+  
         onUpdateItem(draggedItem.id, 'member', { assignee: newAssignee, position: undefined });
+      } finally {
+        if (draggedEl && originalPointerEvents !== null) {
+          draggedEl.style.pointerEvents = originalPointerEvents;
+        }
+        setDraggedItem(null);
+        setResizedItem(null);
       }
-    } finally {
+    } else {
       setDraggedItem(null);
       setResizedItem(null);
     }
