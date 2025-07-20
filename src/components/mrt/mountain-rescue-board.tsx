@@ -51,9 +51,12 @@ interface MountainRescueBoardProps {
   vehicles: Vehicle[];
   teams: Team[];
   columns: Column[];
-  onUpdateItem: (id: string, type: 'member' | 'vehicle' | 'team' | 'column', updates: Partial<TeamMember | Vehicle | Team | Column>) => void;
+  onUpdateMember: (id: string, updates: Partial<TeamMember>) => void;
+  onUpdateContainer: (id: string, type: 'vehicle' | 'team', updates: Partial<Vehicle | Team>) => void;
+  onUpdateColumn: (id: string, updates: Partial<Column>) => void;
   onCreateResource: (type: 'person' | 'equipment' | 'vehicle' | 'team', name: string) => void;
-  onRemoveItem: (id: string, type: 'member' | 'vehicle' | 'team') => void;
+  onRemoveMember: (id: string) => void;
+  onRemoveContainer: (id: string, type: 'vehicle' | 'team') => void;
 }
 
 export function MountainRescueBoard({ 
@@ -61,9 +64,12 @@ export function MountainRescueBoard({
   vehicles, 
   teams, 
   columns, 
-  onUpdateItem, 
+  onUpdateMember,
+  onUpdateContainer,
+  onUpdateColumn,
   onCreateResource, 
-  onRemoveItem 
+  onRemoveMember,
+  onRemoveContainer
 }: MountainRescueBoardProps) {
   const boardRef = useRef<HTMLDivElement>(null);
   
@@ -115,13 +121,11 @@ export function MountainRescueBoard({
     let initialPosition = member.position;
     
     if (!initialPosition) {
-        // If the member doesn't have an absolute position, calculate it
         initialPosition = {
           x: cardRect.left - boardRect.left,
           y: cardRect.top - boardRect.top,
         };
-        // Set it on the member immediately so it can be rendered absolutely
-        onUpdateItem(memberId, 'member', { position: initialPosition, assignee: null });
+        onUpdateMember(memberId, { position: initialPosition, assignee: null });
     }
     
     const boardPos = getBoardCoordinates(e);
@@ -141,17 +145,15 @@ export function MountainRescueBoard({
     const cardElement = (e.target as HTMLElement).closest<HTMLElement>('[data-member-id],[data-column-id]');
     if (!cardElement) return;
 
-    const { width, height } = cardElement.getBoundingClientRect();
-    
-    let initialSize = { width, height };
-
+    let item;
     if (type === 'member') {
-      const member = teamMembers.find(m => m.id === id);
-      initialSize = { width: member?.width || width, height: member?.height || height };
+      item = teamMembers.find(m => m.id === id);
     } else {
-      const column = columns.find(c => c.id === id);
-      initialSize = { width: column?.width || width, height: column?.height || height };
+      item = columns.find(c => c.id === id);
     }
+    if (!item) return;
+
+    const initialSize = { width: item.width || cardElement.offsetWidth, height: item.height || cardElement.offsetHeight };
 
     setResizedItem({
       id: id,
@@ -172,9 +174,9 @@ export function MountainRescueBoard({
       newY = Math.round(newY / GRID_SIZE) * GRID_SIZE;
 
       if (draggedItem.type === 'column') {
-        onUpdateItem(draggedItem.id, 'column', { position: { x: newX, y: newY } });
+        onUpdateColumn(draggedItem.id, { position: { x: newX, y: newY } });
       } else if (draggedItem.type === 'member') {
-        onUpdateItem(draggedItem.id, 'member', { position: { x: newX, y: newY } });
+        onUpdateMember(draggedItem.id, { position: { x: newX, y: newY } });
       }
     } else if (resizedItem) {
         const dx = e.clientX - resizedItem.initialPos.x;
@@ -183,11 +185,11 @@ export function MountainRescueBoard({
         if (resizedItem.type === 'member') {
           const newWidth = Math.max(MIN_CARD_WIDTH, resizedItem.initialSize.width + dx);
           const newHeight = Math.max(MIN_CARD_HEIGHT, resizedItem.initialSize.height + dy);
-          onUpdateItem(resizedItem.id, 'member', { width: newWidth, height: newHeight });
+          onUpdateMember(resizedItem.id, { width: newWidth, height: newHeight });
         } else if (resizedItem.type === 'column') {
           const newWidth = Math.max(MIN_TOOLBAR_WIDTH, resizedItem.initialSize.width + dx);
           const newHeight = Math.max(MIN_TOOLBAR_HEIGHT, resizedItem.initialSize.height + dy);
-          onUpdateItem(resizedItem.id, 'column', { width: newWidth, height: newHeight });
+          onUpdateColumn(resizedItem.id, { width: newWidth, height: newHeight });
         }
     }
   };
@@ -213,7 +215,7 @@ export function MountainRescueBoard({
           newAssignee = { type: targetColumnType as 'vehicle' | 'team', id: targetColumnId };
         }
   
-        onUpdateItem(draggedItem.id, 'member', { assignee: newAssignee, position: undefined });
+        onUpdateMember(draggedItem.id, { assignee: newAssignee, position: undefined });
       } finally {
         if (draggedEl && originalPointerEvents !== null) {
           draggedEl.style.pointerEvents = originalPointerEvents;
@@ -298,8 +300,9 @@ export function MountainRescueBoard({
                   allSkills={ALL_SKILLS}
                   position={column.position}
                   onMouseDown={(e) => handleMouseDownOnColumn(e, column.id)}
-                  onUpdateItem={onUpdateItem}
-                  onRemoveItem={onRemoveItem}
+                  onUpdateMember={onUpdateMember}
+                  onUpdateContainer={onUpdateContainer}
+                  onRemoveContainer={onRemoveContainer}
                   onResizeMemberStart={(e, id) => handleResizeStart(e, id, 'member')}
                   onMemberMouseDown={handleMouseDownOnMember}
                 />
@@ -308,15 +311,14 @@ export function MountainRescueBoard({
             return null;
           })}
 
-          {/* Render floating members */}
           {floatingMembers.map(member => (
-              <div key={member.id} className="absolute" style={{left: member.position!.x, top: member.position!.y}}>
+              <div key={member.id} className="absolute z-10" style={{left: member.position!.x, top: member.position!.y}}>
                 <TeamMemberCard 
                   member={member} 
                   skills={ALL_SKILLS} 
                   isFloating={true}
-                  onRemove={() => onRemoveItem(member.id, 'member')} 
-                  onUpdate={(updates) => onUpdateItem(member.id, 'member', updates)}
+                  onRemove={() => onRemoveMember(member.id)} 
+                  onUpdate={(updates) => onUpdateMember(member.id, updates)}
                   onResizeStart={(e, id) => handleResizeStart(e, id, 'member')}
                   onMouseDown={handleMouseDownOnMember}
                 />
@@ -328,7 +330,7 @@ export function MountainRescueBoard({
       <div 
         data-column-id="unassigned"
         data-column-type="unassigned"
-        className="w-full bg-background/50 border-t border-border p-2"
+        className="w-full bg-background/50 border-t border-border p-2 min-h-24"
       >
         <h3 className="text-center font-bold text-sm mb-2 text-foreground/60 uppercase tracking-wider">Unassigned Resources</h3>
         <div className="grid grid-cols-5 gap-2 p-2">
@@ -338,8 +340,8 @@ export function MountainRescueBoard({
                   member={member} 
                   skills={ALL_SKILLS} 
                   isUnassigned={true}
-                  onRemove={() => onRemoveItem(member.id, 'member')} 
-                  onUpdate={(updates) => onUpdateItem(member.id, 'member', updates)}
+                  onRemove={() => onRemoveMember(member.id)} 
+                  onUpdate={(updates) => onUpdateMember(member.id, updates)}
                   onResizeStart={(e, id) => handleResizeStart(e, id, 'member')}
                   onMouseDown={handleMouseDownOnMember}
                 />

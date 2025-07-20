@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { produce } from 'immer';
-import type { TeamMember, Vehicle, Team, Column, BoardData } from '@/lib/mrt/types';
+import type { TeamMember, Vehicle, Team, Column, BoardData, Point, Assignee } from '@/lib/mrt/types';
 import { MountainRescueBoard } from '@/components/mrt/mountain-rescue-board';
 
 const HORIZONTAL_SPACING = 340;
@@ -30,7 +30,6 @@ export function BoardClientPage({
 
   const [columns, setColumns] = useState<Column[]>(getInitialColumns(initialData));
 
-  // Reset state when initialData changes. This ensures the board updates when switching between routes.
   useEffect(() => {
     setTeamMembers(initialData.teamMembers);
     setVehicles(initialData.vehicles);
@@ -38,7 +37,7 @@ export function BoardClientPage({
     setColumns(getInitialColumns(initialData));
   }, [initialData]);
 
-  const handleTidyUp = () => {
+  const handleTidyUp = useCallback(() => {
     setColumns(produce(draft => {
       let vehicleIndex = 0;
       let teamIndex = 0;
@@ -67,7 +66,7 @@ export function BoardClientPage({
             member.position = undefined;
         });
     }));
-  };
+  }, []);
 
   useEffect(() => {
     if (setTidyUp) {
@@ -75,29 +74,37 @@ export function BoardClientPage({
     }
   }, [setTidyUp, handleTidyUp]);
 
-  const stateSetters = {
-    member: setTeamMembers,
-    vehicle: setVehicles,
-    team: setTeams,
-    column: setColumns,
-  };
+  const updateMember = useCallback((id: string, updates: Partial<TeamMember>) => {
+    setTeamMembers(produce(draft => {
+      const member = draft.find(m => m.id === id);
+      if (member) {
+        Object.assign(member, updates);
+      }
+    }));
+  }, []);
 
-  const updateItem = (id: string, type: 'member' | 'vehicle' | 'team' | 'column', updates: Partial<TeamMember | Vehicle | Team | Column>) => {
-    const setter = stateSetters[type as keyof typeof stateSetters];
-    if (setter) {
-      // @ts-ignore
-      setter(produce((draft: any[]) => {
-        const item = draft.find(i => i.id === id);
-        if (item) {
-          Object.assign(item, updates);
-        }
-      }));
-    }
-  };
+  const updateColumn = useCallback((id: string, updates: Partial<Column>) => {
+    setColumns(produce(draft => {
+      const col = draft.find(c => c.id === id);
+      if (col) {
+        Object.assign(col, updates);
+      }
+    }));
+  }, []);
+
+  const updateContainer = useCallback((id: string, type: 'vehicle' | 'team', updates: Partial<Vehicle | Team>) => {
+    const setter = type === 'vehicle' ? setVehicles : setTeams;
+    setter(produce((draft: any) => {
+      const item = draft.find((i: Vehicle | Team) => i.id === id);
+      if (item) {
+        Object.assign(item, updates);
+      }
+    }));
+  }, []);
 
   const handleCreateResource = (type: 'person' | 'equipment' | 'vehicle' | 'team', name: string) => {
     const newId = `${type}-${Date.now()}`;
-    const newPosition = { x: 20, y: 500 }; // TODO: Make this smarter
+    const newPosition = { x: 20, y: 500 };
 
     if (type === 'vehicle' || type === 'team') {
       const newContainer = {
@@ -107,9 +114,7 @@ export function BoardClientPage({
       };
 
       const stateSetter = type === 'vehicle' ? setVehicles : setTeams;
-      // @ts-ignore
       stateSetter(prev => [...prev, newContainer]);
-
       setColumns(prev => [...prev, { id: newId, type, position: newPosition }]);
     } else {
       const [firstName, ...lastNameParts] = name.split(' ');
@@ -127,26 +132,22 @@ export function BoardClientPage({
     }
   };
 
-  const handleRemoveItem = (id: string, type: 'member' | 'vehicle' | 'team') => {
-    if (type === 'member') {
-      setTeamMembers(prev => prev.filter(m => m.id !== id));
-    } else {
-      const stateSetter = type === 'vehicle' ? setVehicles : setTeams;
-      // @ts-ignore
-      stateSetter(prev => prev.filter(item => item.id !== id));
-
-      setColumns(prev => prev.filter(c => c.id !== id));
-
-      setTeamMembers(produce(draft => {
-        draft.forEach(member => {
-          if (member.assignee?.id === id) {
-            member.assignee = null;
-          }
-        });
-      }));
-    }
+  const handleRemoveContainer = (id: string, type: 'vehicle' | 'team') => {
+    const stateSetter = type === 'vehicle' ? setVehicles : setTeams;
+    stateSetter(prev => prev.filter(item => item.id !== id));
+    setColumns(prev => prev.filter(c => c.id !== id));
+    setTeamMembers(produce(draft => {
+      draft.forEach(member => {
+        if (member.assignee?.id === id) {
+          member.assignee = null;
+        }
+      });
+    }));
   };
-
+  
+  const handleRemoveMember = (id: string) => {
+    setTeamMembers(prev => prev.filter(m => m.id !== id));
+  };
 
   return (
     <main className="w-full h-full overflow-hidden flex-1">
@@ -156,9 +157,12 @@ export function BoardClientPage({
         vehicles={vehicles}
         teams={teams}
         columns={columns}
-        onUpdateItem={updateItem}
         onCreateResource={handleCreateResource}
-        onRemoveItem={handleRemoveItem}
+        onRemoveMember={handleRemoveMember}
+        onRemoveContainer={handleRemoveContainer}
+        onUpdateMember={updateMember}
+        onUpdateColumn={updateColumn}
+        onUpdateContainer={updateContainer}
       />
     </main>
   );
