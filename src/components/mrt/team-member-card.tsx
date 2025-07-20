@@ -4,7 +4,7 @@ import { useState, type MouseEvent } from 'react';
 import { Card } from '@/components/ui/card';
 import type { TeamMember, Skill } from '@/lib/mrt/types';
 import { cn } from '@/lib/utils';
-import { GripVertical, Trash2, ArrowDownRight } from 'lucide-react';
+import { GripVertical, Trash2, ArrowDownRight, User, Wrench } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
 interface TeamMemberCardProps {
@@ -41,6 +41,8 @@ export function TeamMemberCard({ member, skills, isUnassigned = false, onRemove,
       handleBlur();
     }
   };
+  
+  const isPerson = member.type === 'person';
 
   return (
     <Card
@@ -55,11 +57,13 @@ export function TeamMemberCard({ member, skills, isUnassigned = false, onRemove,
         {
           'bg-red-200/80 dark:bg-red-900/50': member.role === 'leader',
           'border-l-4 border-yellow-500': member.role === 'driver',
+          'bg-sky-100 dark:bg-sky-950/70': member.type === 'equipment',
         }
       )}
     >
       <GripVertical className="h-5 w-5 text-slate-400 dark:text-slate-600" />
-      <div className="flex-grow" onDoubleClick={handleDoubleClick}>
+      <div className="flex-grow flex items-center gap-2" onDoubleClick={handleDoubleClick}>
+        {member.type === 'person' ? <User className="h-4 w-4 text-slate-500" /> : <Wrench className="h-4 w-4 text-slate-500" />}
         {isEditing ? (
           <Input
             type="text"
@@ -77,19 +81,21 @@ export function TeamMemberCard({ member, skills, isUnassigned = false, onRemove,
           </p>
         )}
       </div>
-      <div className="flex gap-1">
-        {memberSkills.map(skill => (
-          <div
-            key={skill.id}
-            title={skill.name}
-            className="w-4 h-4 rounded-sm"
-            style={{ backgroundColor: skill.color }}
-          />
-        ))}
-        {Array.from({ length: 4 - memberSkills.length }).map((_, i) => (
-            <div key={`placeholder-${i}`} className="w-4 h-4 rounded-sm bg-slate-200 dark:bg-slate-700 opacity-50" />
-        ))}
-      </div>
+      {isPerson && (
+        <div className="flex gap-1">
+          {memberSkills.map(skill => (
+            <div
+              key={skill.id}
+              title={skill.name}
+              className="w-4 h-4 rounded-sm"
+              style={{ backgroundColor: skill.color }}
+            />
+          ))}
+          {Array.from({ length: 4 - memberSkills.length }).map((_, i) => (
+              <div key={`placeholder-${i}`} className="w-4 h-4 rounded-sm bg-slate-200 dark:bg-slate-700 opacity-50" />
+          ))}
+        </div>
+      )}
        {isUnassigned && onRemove && (
         <button onClick={() => onRemove(member.id)} onMouseDown={(e) => e.stopPropagation()} className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive/70 hover:text-destructive">
           <Trash2 className="h-4 w-4" />

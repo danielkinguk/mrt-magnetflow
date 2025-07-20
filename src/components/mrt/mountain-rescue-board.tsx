@@ -10,6 +10,17 @@ import { NoSSR } from '@/components/no-ssr';
 import { TeamMemberCard } from './team-member-card';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 
 const GRID_SIZE = 20;
 const MIN_CARD_WIDTH = 200;
@@ -25,6 +36,11 @@ type DraggedMember = {
   originalPosition: Point;
 };
 
+type NewResourceState = {
+  open: boolean;
+  name: string;
+}
+
 export function MountainRescueBoard() {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>(INITIAL_TEAM_MEMBERS);
   const [vehicles, setVehicles] = useState<Vehicle[]>(INITIAL_VEHICLES);
@@ -39,6 +55,7 @@ export function MountainRescueBoard() {
   const [draggedColumn, setDraggedColumn] = useState<{ id: string; offset: Point } | null>(null);
   const [draggedMember, setDraggedMember] = useState<DraggedMember | null>(null);
   const [resizedItem, setResizedItem] = useState<{ id: string, type: 'member' | 'column', initialPos: Point, initialSize: {width: number, height: number} } | null>(null);
+  const [newResource, setNewResource] = useState<NewResourceState>({ open: false, name: '' });
 
   const getBoardCoordinates = useCallback((e: MouseEvent<HTMLElement> | React.MouseEvent<HTMLElement>) => {
     if (!boardRef.current) return { x: 0, y: 0 };
@@ -47,19 +64,43 @@ export function MountainRescueBoard() {
     return { x: (e.clientX - rect.left) / scale, y: (e.clientY - rect.top) / scale };
   }, []);
 
-  const handleAddMember = (name: string) => {
-    if (!name.trim()) return;
-    const [firstName, lastName] = name.split(' ');
-    const newMember: TeamMember = {
-      id: `mem-${Date.now()}`,
-      firstName: firstName || 'New',
-      lastName: lastName || 'Member',
-      skills: [],
-      vehicleId: null,
-      role: 'default',
-    };
-    setTeamMembers(prev => [...prev, newMember]);
+  const handleOpenResourceDialog = (name: string) => {
+    setNewResource({ open: true, name });
   };
+  
+  const handleCreateResource = (type: 'person' | 'equipment' | 'vehicle') => {
+    const name = newResource.name;
+    if (!name.trim()) return;
+
+    if (type === 'vehicle') {
+      const newVehicle: Vehicle = {
+        id: `vcl-${Date.now()}`,
+        name,
+        color: `#${Math.floor(Math.random()*16777215).toString(16)}`
+      };
+      setVehicles(prev => [...prev, newVehicle]);
+      setColumns(prev => [...prev, {
+        id: newVehicle.id,
+        type: 'vehicle',
+        position: { x: 20, y: 500 } // Default position, can be improved
+      }]);
+    } else {
+      const [firstName, ...lastNameParts] = name.split(' ');
+      const newMember: TeamMember = {
+        id: `res-${Date.now()}`,
+        firstName: firstName || 'New',
+        lastName: lastNameParts.join(' ') || 'Resource',
+        skills: [],
+        vehicleId: null,
+        role: 'default',
+        type: type,
+      };
+      setTeamMembers(prev => [...prev, newMember]);
+    }
+    
+    setNewResource({ open: false, name: '' });
+  };
+
 
   const handleRemoveMember = (id: string) => {
     setTeamMembers(prev => prev.filter(m => m.id !== id));
@@ -232,6 +273,23 @@ export function MountainRescueBoard() {
       onMouseUp={handleMouseUp}
       ref={boardRef}
     >
+      <AlertDialog open={newResource.open} onOpenChange={(open) => setNewResource(prev => ({...prev, open}))}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Create New Resource</AlertDialogTitle>
+            <AlertDialogDescription>
+              What type of resource is "{newResource.name}"?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleCreateResource('person')}>Person</AlertDialogAction>
+            <AlertDialogAction onClick={() => handleCreateResource('equipment')}>Equipment</AlertDialogAction>
+            <AlertDialogAction onClick={() => handleCreateResource('vehicle')}>Vehicle</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div className="flex-1 p-4 w-full h-full relative">
         {columns.map((column) => {
           if (column.type === 'toolbar') {
@@ -240,7 +298,7 @@ export function MountainRescueBoard() {
                 <div style={{ position: 'absolute', left: column.position.x, top: column.position.y }}>
                   <MrtToolbar 
                     id={column.id}
-                    onAddMember={handleAddMember} 
+                    onAddResource={handleOpenResourceDialog} 
                     onMouseDown={(e) => handleMouseDownOnColumn(e, column.id)} 
                     onResizeStart={handleResizeColumnStart}
                     width={column.width}
@@ -275,7 +333,7 @@ export function MountainRescueBoard() {
         data-column-id="unassigned"
         className="w-full bg-slate-100 dark:bg-slate-950/50 border-t border-slate-200 dark:border-slate-800 p-2"
       >
-        <h3 className="text-center font-bold text-sm mb-2 text-slate-600 dark:text-slate-400 uppercase tracking-wider">Unassigned</h3>
+        <h3 className="text-center font-bold text-sm mb-2 text-slate-600 dark:text-slate-400 uppercase tracking-wider">Unassigned Resources</h3>
         <div className="grid grid-cols-5 gap-2 p-2">
             {unassignedMembers.map(member => (
               <div key={member.id}>

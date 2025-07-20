@@ -19,6 +19,7 @@ export type TeamMember = {
   vehicleId: Vehicle['id'] | null;
   width?: number;
   height?: number;
+  type: 'person' | 'equipment';
 };
 
 export type Vehicle = {

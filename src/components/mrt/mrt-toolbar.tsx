@@ -7,7 +7,7 @@ import { Plus, ArrowDownRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface MrtToolbarProps {
-  onAddMember: (name: string) => void;
+  onAddResource: (name: string) => void;
   onMouseDown: (e: MouseEvent) => void;
   onResizeStart: (e: MouseEvent, id: string) => void;
   id: string;
@@ -15,12 +15,13 @@ interface MrtToolbarProps {
   height?: number;
 }
 
-export function MrtToolbar({ onAddMember, onMouseDown, onResizeStart, id, width, height }: MrtToolbarProps) {
-  const [newMemberName, setNewMemberName] = useState('');
+export function MrtToolbar({ onAddResource, onMouseDown, onResizeStart, id, width, height }: MrtToolbarProps) {
+  const [newResourceName, setNewResourceName] = useState('');
 
   const handleAddClick = () => {
-    onAddMember(newMemberName);
-    setNewMemberName('');
+    if (!newResourceName.trim()) return;
+    onAddResource(newResourceName);
+    setNewResourceName('');
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -43,9 +44,9 @@ export function MrtToolbar({ onAddMember, onMouseDown, onResizeStart, id, width,
       </div>
       <div className="flex items-center gap-2">
         <Input 
-          placeholder="New member name..." 
-          value={newMemberName} 
-          onChange={(e) => setNewMemberName(e.target.value)}
+          placeholder="New resource name..." 
+          value={newResourceName} 
+          onChange={(e) => setNewResourceName(e.target.value)}
           onKeyDown={handleKeyDown}
           className="h-9"
           onMouseDown={(e) => e.stopPropagation()}
