@@ -46,3 +46,9 @@ export type Column = {
     width?: number;
     height?: number;
 }
+
+export type BoardData = {
+  teamMembers: TeamMember[];
+  vehicles: Vehicle[];
+  teams: Team[];
+}

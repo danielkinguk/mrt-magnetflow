@@ -1,18 +1,26 @@
-'use client';
-
-import { useState } from 'react';
 import { MountainRescueBoard } from '@/components/mrt/mountain-rescue-board';
 import { BOARDS_DATA } from '@/lib/mrt/board-data';
 import { notFound } from 'next/navigation';
 import { produce } from 'immer';
-import type { TeamMember, Vehicle, Team, Column } from '@/lib/mrt/types';
+import type { TeamMember, Vehicle, Team, Column, BoardData } from '@/lib/mrt/types';
+import { useState } from 'react';
 
+// The new Server Component wrapper
 export default function BoardPage({ params }: { params: { boardId: string } }) {
-  const initialData = BOARDS_DATA[params.boardId];
+  const { boardId } = params;
+  const initialData = BOARDS_DATA[boardId];
 
   if (!initialData) {
     notFound();
   }
+
+  return <BoardClientPage boardId={boardId} initialData={initialData} />;
+}
+
+'use client';
+
+// The original page component, now renamed and used as the client boundary
+function BoardClientPage({ boardId, initialData }: { boardId: string, initialData: BoardData }) {
 
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>(initialData.teamMembers);
   const [vehicles, setVehicles] = useState<Vehicle[]>(initialData.vehicles);
@@ -99,7 +107,7 @@ export default function BoardPage({ params }: { params: { boardId: string } }) {
   return (
     <main className="w-full h-full overflow-hidden flex-1">
       <MountainRescueBoard
-        key={params.boardId}
+        key={boardId}
         teamMembers={teamMembers}
         vehicles={vehicles}
         teams={teams}
@@ -112,9 +120,8 @@ export default function BoardPage({ params }: { params: { boardId: string } }) {
   );
 }
 
-// Re-enable generateStaticParams if you intend to use static generation
-// export function generateStaticParams() {
-//   return Object.keys(BOARDS_DATA).map((boardId) => ({
-//     boardId,
-//   }));
-// }
+export function generateStaticParams() {
+  return Object.keys(BOARDS_DATA).map((boardId) => ({
+    boardId,
+  }));
+}
