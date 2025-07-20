@@ -38,7 +38,7 @@ export default function MainLayout({
         <SidebarContent>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton href="/" tooltip="Home" isActive={pathname === '/'}>
+              <SidebarMenuButton href="/welcome" tooltip="Home" isActive={pathname === '/welcome' || pathname === '/'}>
                 <Home />
                 Home
               </SidebarMenuButton>
