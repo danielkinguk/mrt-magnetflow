@@ -7,6 +7,7 @@ import { MrtToolbar } from '@/components/mrt/mrt-toolbar';
 import { INITIAL_TEAM_MEMBERS, INITIAL_VEHICLES, ALL_SKILLS } from '@/lib/mrt/data';
 import { UnassignedColumn } from '@/components/mrt/unassigned-column';
 import { produce } from 'immer';
+import { NoSSR } from '@/components/no-ssr';
 
 const GRID_SIZE = 20;
 
@@ -98,7 +99,9 @@ export function MountainRescueBoard() {
       onMouseUp={handleMouseUp}
       ref={boardRef}
     >
-      <MrtToolbar onAddMember={handleAddMember} />
+      <NoSSR>
+        <MrtToolbar onAddMember={handleAddMember} />
+      </NoSSR>
 
       <div className="flex-1 p-4 w-full h-full">
         {columns.map((column) => {
