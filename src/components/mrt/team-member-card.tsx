@@ -32,7 +32,7 @@ export function TeamMemberCard({ member, skills, isUnassigned = false, onRemove,
 
   const handleBlur = () => {
     setIsEditing(false);
-    const [firstName, ...lastNameParts] = name.split(' ');
+    const [firstName, ...lastNameParts] = name.trim().split(' ');
     onUpdate(member.id, { firstName, lastName: lastNameParts.join(' ') });
   };
 
@@ -53,17 +53,17 @@ export function TeamMemberCard({ member, skills, isUnassigned = false, onRemove,
         height: member.height ? `${member.height}px` : 'auto',
       }}
       className={cn(
-        'p-2 flex items-center gap-2 bg-white/90 dark:bg-slate-800/90 shadow-sm hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing border border-slate-200 dark:border-slate-700/80 group relative',
+        'p-2 flex items-center gap-2 bg-card shadow-sm hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing border group relative',
         {
           'bg-red-200/80 dark:bg-red-900/50': member.role === 'leader',
-          'border-l-4 border-yellow-500': member.role === 'driver',
+          'border-l-4 border-accent': member.role === 'driver',
           'bg-sky-100 dark:bg-sky-950/70': member.type === 'equipment',
         }
       )}
     >
-      <GripVertical className="h-5 w-5 text-slate-400 dark:text-slate-600" />
+      <GripVertical className="h-5 w-5 text-muted-foreground" />
       <div className="flex-grow flex items-center gap-2" onDoubleClick={handleDoubleClick}>
-        {member.type === 'person' ? <User className="h-4 w-4 text-slate-500" /> : <Wrench className="h-4 w-4 text-slate-500" />}
+        {isPerson ? <User className="h-4 w-4 text-muted-foreground" /> : <Wrench className="h-4 w-4 text-muted-foreground" />}
         {isEditing ? (
           <Input
             type="text"
@@ -76,7 +76,7 @@ export function TeamMemberCard({ member, skills, isUnassigned = false, onRemove,
             onMouseDown={(e) => e.stopPropagation()}
           />
         ) : (
-          <p className="font-semibold text-sm text-slate-800 dark:text-slate-200">
+          <p className="font-semibold text-sm text-card-foreground">
             {member.firstName} {member.lastName}
           </p>
         )}
@@ -92,7 +92,7 @@ export function TeamMemberCard({ member, skills, isUnassigned = false, onRemove,
             />
           ))}
           {Array.from({ length: 4 - memberSkills.length }).map((_, i) => (
-              <div key={`placeholder-${i}`} className="w-4 h-4 rounded-sm bg-slate-200 dark:bg-slate-700 opacity-50" />
+              <div key={`placeholder-${i}`} className="w-4 h-4 rounded-sm bg-muted opacity-50" />
           ))}
         </div>
       )}
@@ -103,7 +103,7 @@ export function TeamMemberCard({ member, skills, isUnassigned = false, onRemove,
       )}
       <div
         onMouseDown={(e) => { e.stopPropagation(); onResizeStart(e, member.id); }}
-        className="absolute bottom-0 right-0 cursor-se-resize text-slate-400 hover:text-slate-600 dark:text-slate-600 dark:hover:text-slate-400 opacity-50 group-hover:opacity-100"
+        className="absolute bottom-0 right-0 cursor-se-resize text-muted-foreground hover:text-foreground/80 opacity-50 group-hover:opacity-100"
       >
         <ArrowDownRight className="w-3 h-3" />
       </div>

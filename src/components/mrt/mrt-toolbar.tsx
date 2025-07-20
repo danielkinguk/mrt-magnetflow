@@ -4,12 +4,12 @@ import { useState, type MouseEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, ArrowDownRight } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Logo } from '@/components/icons';
 
 interface MrtToolbarProps {
   onAddResource: (name: string) => void;
   onMouseDown: (e: MouseEvent) => void;
-  onResizeStart: (e: MouseEvent, id: string) => void;
+  onResizeStart: (e: MouseEvent) => void;
   id: string;
   width?: number;
   height?: number;
@@ -40,7 +40,8 @@ export function MrtToolbar({ onAddResource, onMouseDown, onResizeStart, id, widt
       }}
     >
       <div className="flex items-center gap-2 px-2 mr-2">
-        <span className="font-bold text-lg font-headline text-foreground">MRT Board</span>
+        <Logo className="h-6 w-6 text-primary" />
+        <span className="font-bold text-lg font-headline text-foreground">MagnetFlow</span>
       </div>
       <div className="flex items-center gap-2">
         <Input 
@@ -56,8 +57,8 @@ export function MrtToolbar({ onAddResource, onMouseDown, onResizeStart, id, widt
         </Button>
       </div>
        <div
-        onMouseDown={(e) => { e.stopPropagation(); onResizeStart(e, id); }}
-        className="absolute bottom-0 right-0 cursor-se-resize text-slate-400 hover:text-slate-600 dark:text-slate-600 dark:hover:text-slate-400 opacity-50 group-hover:opacity-100"
+        onMouseDown={(e) => { e.stopPropagation(); onResizeStart(e); }}
+        className="absolute bottom-0 right-0 cursor-se-resize text-muted-foreground hover:text-foreground/80 opacity-50 group-hover:opacity-100"
       >
         <ArrowDownRight className="w-3 h-3" />
       </div>

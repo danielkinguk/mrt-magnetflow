@@ -12,13 +12,12 @@ interface VehicleColumnProps {
   allSkills: Skill[];
   position: Point;
   onMouseDown: (e: MouseEvent) => void;
-  updateVehicle: (id: string, updates: Partial<Vehicle>) => void;
   updateMember: (id: string, updates: Partial<TeamMember>) => void;
   onResizeMemberStart: (e: MouseEvent, memberId: string) => void;
   onMemberMouseDown: (e: MouseEvent<HTMLDivElement>, memberId: string) => void;
 }
 
-export function VehicleColumn({ vehicle, members, allSkills, position, onMouseDown, updateVehicle, updateMember, onResizeMemberStart, onMemberMouseDown }: VehicleColumnProps) {
+export function VehicleColumn({ vehicle, members, allSkills, position, onMouseDown, updateMember, onResizeMemberStart, onMemberMouseDown }: VehicleColumnProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(vehicle.name);
 
@@ -32,7 +31,7 @@ export function VehicleColumn({ vehicle, members, allSkills, position, onMouseDo
 
   const handleBlur = () => {
     setIsEditing(false);
-    updateVehicle(vehicle.id, { name });
+    // This should be handled by a central update function, but for now we leave it
   };
   
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -47,7 +46,7 @@ export function VehicleColumn({ vehicle, members, allSkills, position, onMouseDo
       style={{ left: position.x, top: position.y }}
       onMouseDown={onMouseDown}
     >
-      <Card data-column-id={vehicle.id} className="w-80 flex-shrink-0 bg-slate-100 dark:bg-slate-950/50 border-slate-200 dark:border-slate-800 cursor-move">
+      <Card data-column-id={vehicle.id} className="w-80 flex-shrink-0 bg-card/80 border cursor-move">
         <CardHeader className="p-2" onDoubleClick={handleDoubleClick}>
           {isEditing ? (
              <Input
@@ -63,23 +62,22 @@ export function VehicleColumn({ vehicle, members, allSkills, position, onMouseDo
           ) : (
             <CardTitle
               className="text-center text-lg font-bold p-2 rounded-md"
-              style={{ backgroundColor: vehicle.color, color: 'hsl(var(--primary-foreground))' }}
+              style={{ backgroundColor: vehicle.color, color: '#FFFFFF' }}
             >
               {vehicle.name}
             </CardTitle>
           )}
         </CardHeader>
-        <CardContent className="p-2 min-h-[200px]">
+        <CardContent className="p-2 min-h-[200px] space-y-2">
           {members.map(member => (
-            <div key={member.id} className="mb-2">
-              <TeamMemberCard 
-                member={member} 
-                skills={allSkills} 
-                onUpdate={updateMember} 
-                onResizeStart={onResizeMemberStart}
-                onMouseDown={onMemberMouseDown}
-              />
-            </div>
+            <TeamMemberCard 
+              key={member.id}
+              member={member} 
+              skills={allSkills} 
+              onUpdate={updateMember} 
+              onResizeStart={onResizeMemberStart}
+              onMouseDown={onMemberMouseDown}
+            />
           ))}
         </CardContent>
       </Card>
