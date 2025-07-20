@@ -14,6 +14,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 const GRID_SIZE = 20;
 const MIN_CARD_WIDTH = 200;
 const MIN_CARD_HEIGHT = 44;
+const MIN_TOOLBAR_WIDTH = 380;
+const MIN_TOOLBAR_HEIGHT = 52;
+
 
 type DraggedMember = {
   id: string;
@@ -35,7 +38,7 @@ export function MountainRescueBoard() {
   const [columns, setColumns] = useState<Column[]>(initialColumns);
   const [draggedColumn, setDraggedColumn] = useState<{ id: string; offset: Point } | null>(null);
   const [draggedMember, setDraggedMember] = useState<DraggedMember | null>(null);
-  const [resizedItem, setResizedItem] = useState<{ id: string, initialPos: Point, initialSize: {width: number, height: number} } | null>(null);
+  const [resizedItem, setResizedItem] = useState<{ id: string, type: 'member' | 'column', initialPos: Point, initialSize: {width: number, height: number} } | null>(null);
 
   const getBoardCoordinates = useCallback((e: MouseEvent<HTMLElement> | React.MouseEvent<HTMLElement>) => {
     if (!boardRef.current) return { x: 0, y: 0 };
@@ -122,8 +125,26 @@ export function MountainRescueBoard() {
 
     setResizedItem({
       id: memberId,
+      type: 'member',
       initialPos: { x: e.clientX, y: e.clientY },
       initialSize: { width: memberCard?.width || width, height: memberCard?.height || height },
+    });
+  };
+
+  const handleResizeColumnStart = (e: MouseEvent, columnId: string) => {
+    e.stopPropagation();
+    const column = columns.find(c => c.id === columnId);
+    if (!column) return;
+
+    const toolbarElement = (e.target as HTMLElement).closest<HTMLElement>('[onmousedown]');
+    if (!toolbarElement) return;
+    const { width, height } = toolbarElement.getBoundingClientRect();
+    
+    setResizedItem({
+      id: columnId,
+      type: 'column',
+      initialPos: { x: e.clientX, y: e.clientY },
+      initialSize: { width: column.width || width, height: column.height || height },
     });
   };
   
@@ -155,10 +176,15 @@ export function MountainRescueBoard() {
         const dx = e.clientX - resizedItem.initialPos.x;
         const dy = e.clientY - resizedItem.initialPos.y;
         
-        const newWidth = Math.max(MIN_CARD_WIDTH, resizedItem.initialSize.width + dx);
-        const newHeight = Math.max(MIN_CARD_HEIGHT, resizedItem.initialSize.height + dy);
-
-        updateMember(resizedItem.id, { width: newWidth, height: newHeight });
+        if (resizedItem.type === 'member') {
+          const newWidth = Math.max(MIN_CARD_WIDTH, resizedItem.initialSize.width + dx);
+          const newHeight = Math.max(MIN_CARD_HEIGHT, resizedItem.initialSize.height + dy);
+          updateMember(resizedItem.id, { width: newWidth, height: newHeight });
+        } else if (resizedItem.type === 'column') {
+          const newWidth = Math.max(MIN_TOOLBAR_WIDTH, resizedItem.initialSize.width + dx);
+          const newHeight = Math.max(MIN_TOOLBAR_HEIGHT, resizedItem.initialSize.height + dy);
+          updateColumn(resizedItem.id, { width: newWidth, height: newHeight });
+        }
     }
   };
   
@@ -190,7 +216,11 @@ export function MountainRescueBoard() {
   };
 
   const updateVehicle = (id: string, updates: Partial<Vehicle>) => {
-    setVehicles(prev => prev.map(v => v.id === id ? { ...v, ...updates } : v));
+    setVehicles(prev => prev.map(v => v.id === id ? { ...v, ...updates } : m));
+  };
+
+  const updateColumn = (id: string, updates: Partial<Column>) => {
+    setColumns(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
   };
   
   const unassignedMembers = teamMembers.filter(m => m.vehicleId === null);
@@ -208,7 +238,14 @@ export function MountainRescueBoard() {
             return (
               <NoSSR key={column.id}>
                 <div style={{ position: 'absolute', left: column.position.x, top: column.position.y }}>
-                  <MrtToolbar onAddMember={handleAddMember} onMouseDown={(e) => handleMouseDownOnColumn(e, column.id)} />
+                  <MrtToolbar 
+                    id={column.id}
+                    onAddMember={handleAddMember} 
+                    onMouseDown={(e) => handleMouseDownOnColumn(e, column.id)} 
+                    onResizeStart={handleResizeColumnStart}
+                    width={column.width}
+                    height={column.height}
+                  />
                 </div>
               </NoSSR>
             );

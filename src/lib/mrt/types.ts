@@ -31,4 +31,6 @@ export type Column = {
     id: string;
     type: 'vehicle' | 'unassigned' | 'toolbar';
     position: Point;
+    width?: number;
+    height?: number;
 }
