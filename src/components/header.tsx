@@ -10,10 +10,10 @@ export function Header() {
             <SidebarTrigger />
         </div>
         <div className="flex flex-1 items-center justify-end space-x-4">
-          <div className="p-1 border border-gray-200 rounded-md">
+          <ThemeToggle />
+          <div className="p-1 border border-border rounded-md">
             <Image src="/images/logo.png" alt="DK Apps Logo" width={100} height={36} />
           </div>
-          <ThemeToggle />
         </div>
       </div>
     </header>
