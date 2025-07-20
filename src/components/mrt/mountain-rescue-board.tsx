@@ -242,14 +242,8 @@ export function MountainRescueBoard() {
   };
   
   const handleMouseUp = (e: React.MouseEvent<HTMLElement>) => {
-    if (draggedItem) {
-      if (draggedItemType === 'member') {
-        draggedItem.element?.remove();
-        
-        // Make original card visible again
-        const originalCard = boardRef.current?.querySelector(`[data-member-id="${draggedItem.id}"]`);
-        originalCard?.classList.remove('opacity-0');
-        
+    try {
+      if (draggedItem && draggedItemType === 'member') {
         const targetElement = document.elementFromPoint(e.clientX, e.clientY);
         const targetColumnEl = targetElement?.closest('[data-column-id]');
         const targetColumnId = targetColumnEl?.getAttribute('data-column-id');
@@ -261,11 +255,17 @@ export function MountainRescueBoard() {
         }
         updateItem(draggedItem.id, 'member', { assignee: newAssignee });
       }
+    } finally {
+      if (draggedItem && draggedItemType === 'member') {
+        draggedItem.element?.remove();
+        
+        const originalCard = document.querySelector(`[data-member-id="${draggedItem.id}"]`);
+        originalCard?.classList.remove('opacity-0');
+      }
+      setDraggedItem(null);
+      setDraggedItemType(null);
+      setResizedItem(null);
     }
-    
-    setDraggedItem(null);
-    setDraggedItemType(null);
-    setResizedItem(null);
   };
 
   const updateItem = useCallback((id: string, type: 'member' | 'vehicle' | 'team' | 'column', updates: Partial<TeamMember | Vehicle | Team | Column>) => {
