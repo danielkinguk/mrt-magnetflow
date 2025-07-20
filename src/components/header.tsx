@@ -1,6 +1,5 @@
 import { SidebarTrigger } from "./ui/sidebar";
 import { ThemeToggle } from "./theme-toggle";
-import { AppLogo } from "./icons";
 
 export function Header() {
   return (
@@ -11,8 +10,8 @@ export function Header() {
         </div>
         <div className="flex flex-1 items-center justify-end space-x-4">
           <ThemeToggle />
-          <div className="p-1 border border-border rounded-md h-[36px] w-[100px] flex items-center justify-center">
-            <AppLogo className="h-full w-full object-contain" data-ai-hint="logo" />
+          <div className="p-1 border border-border rounded-md h-[36px] w-auto px-3 flex items-center justify-center">
+            <span className="text-sm font-semibold text-foreground whitespace-nowrap">DK Apps 2025</span>
           </div>
         </div>
       </div>
