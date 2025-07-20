@@ -8,11 +8,11 @@ import { Toolbar } from '@/components/toolbar';
 import { Magnet } from '@/components/magnet';
 import { ConnectionsLayer } from '@/components/connections-layer';
 
-const initialMagnets: MagnetData[] = [
-  { id: 'magnet-1', text: 'Brainstorming session Q3', position: { x: 100, y: 150 }, color: '#FDDC8C' },
-  { id: 'magnet-2', text: 'User feedback analysis', position: { x: 400, y: 100 }, color: '#A4D9F8' },
-  { id: 'magnet-3', text: 'New feature ideas', position: { x: 150, y: 400 }, color: '#B2EAC8' },
-  { id: 'magnet-4', text: 'Marketing campaign for new feature', position: { x: 500, y: 450 }, color: '#F8C8DC' },
+const initialMagnetsData: Omit<MagnetData, 'position'>[] = [
+  { id: 'magnet-1', text: 'Brainstorming session Q3', color: '#FDDC8C' },
+  { id: 'magnet-2', text: 'User feedback analysis', color: '#A4D9F8' },
+  { id: 'magnet-3', text: 'New feature ideas', color: '#B2EAC8' },
+  { id: 'magnet-4', text: 'Marketing campaign for new feature', color: '#F8C8DC' },
 ];
 
 const MAGNET_COLORS = ['#FDDC8C', '#A4D9F8', '#B2EAC8', '#F8C8DC', '#D8C8F8'];
@@ -21,12 +21,20 @@ export function MagnetBoard() {
   const { toast } = useToast();
   const boardRef = useRef<HTMLDivElement>(null);
 
-  const [magnets, setMagnets] = useState<MagnetData[]>(initialMagnets);
+  const [magnets, setMagnets] = useState<MagnetData[]>([]);
   const [connections, setConnections] = useState<ConnectionData[]>([]);
   const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[]>([]);
   
   const [draggedMagnet, setDraggedMagnet] = useState<{ id: string; offset: Point } | null>(null);
   const [newConnection, setNewConnection] = useState<{ sourceId: string; to: Point } | null>(null);
+
+  useEffect(() => {
+    const positionedMagnets = initialMagnetsData.map((magnet, index) => ({
+      ...magnet,
+      position: { x: (index % 2) * 300 + 100 + Math.random() * 50, y: Math.floor(index / 2) * 250 + 100 + Math.random() * 50 },
+    }));
+    setMagnets(positionedMagnets);
+  }, []);
 
   const getBoardCoordinates = useCallback((e: MouseEvent) => {
     if (!boardRef.current) return { x: 0, y: 0 };
