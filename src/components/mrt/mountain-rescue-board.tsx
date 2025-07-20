@@ -1,0 +1,138 @@
+'use client';
+
+import { useState, type MouseEvent, useCallback, useRef } from 'react';
+import type { TeamMember, Vehicle, Skill, Column } from '@/lib/mrt/types';
+import { VehicleColumn } from '@/components/mrt/vehicle-column';
+import { MrtToolbar } from '@/components/mrt/mrt-toolbar';
+import { INITIAL_TEAM_MEMBERS, INITIAL_VEHICLES, ALL_SKILLS } from '@/lib/mrt/data';
+import { UnassignedColumn } from '@/components/mrt/unassigned-column';
+import { produce } from 'immer';
+
+const GRID_SIZE = 20;
+
+export function MountainRescueBoard() {
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(INITIAL_TEAM_MEMBERS);
+  const [vehicles, setVehicles] = useState<Vehicle[]>(INITIAL_VEHICLES);
+  const boardRef = useRef<HTMLDivElement>(null);
+  
+  const initialColumns: Column[] = [
+    ...INITIAL_VEHICLES.map((v, i) => ({ id: v.id, type: 'vehicle' as const, position: { x: i * 340 + 20, y: 20 } })),
+    { id: 'unassigned', type: 'unassigned' as const, position: { x: INITIAL_VEHICLES.length * 340 + 20, y: 20 } }
+  ];
+
+  const [columns, setColumns] = useState<Column[]>(initialColumns);
+  const [draggedItem, setDraggedItem] = useState<{ id: string; offset: { x: number; y: number } } | null>(null);
+
+  const getBoardCoordinates = useCallback((e: MouseEvent) => {
+    if (!boardRef.current) return { x: 0, y: 0 };
+    const rect = boardRef.current.getBoundingClientRect();
+    const scale = rect.width / boardRef.current.offsetWidth;
+    return { x: (e.clientX - rect.left) / scale, y: (e.clientY - rect.top) / scale };
+  }, []);
+
+  const handleAddMember = (name: string) => {
+    if (!name.trim()) return;
+    const [firstName, lastName] = name.split(' ');
+    const newMember: TeamMember = {
+      id: `mem-${Date.now()}`,
+      firstName: firstName || 'New',
+      lastName: lastName || 'Member',
+      skills: [],
+      vehicleId: null,
+      role: 'default',
+    };
+    setTeamMembers(prev => [...prev, newMember]);
+  };
+
+  const handleRemoveMember = (id: string) => {
+    setTeamMembers(prev => prev.filter(m => m.id !== id));
+  };
+  
+  const handleMouseDownOnColumn = (e: MouseEvent, id: string) => {
+    e.stopPropagation();
+    const column = columns.find(c => c.id === id);
+    if (!column) return;
+    const boardPos = getBoardCoordinates(e);
+    setDraggedItem({
+      id,
+      offset: { x: boardPos.x - column.position.x, y: boardPos.y - column.position.y },
+    });
+  };
+  
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!draggedItem) return;
+    const boardPos = getBoardCoordinates(e);
+    let newX = boardPos.x - draggedItem.offset.x;
+    let newY = boardPos.y - draggedItem.offset.y;
+    
+    newX = Math.round(newX / GRID_SIZE) * GRID_SIZE;
+    newY = Math.round(newY / GRID_SIZE) * GRID_SIZE;
+
+    setColumns(
+        produce(draft => {
+            const dragged = draft.find(c => c.id === draggedItem.id);
+            if(dragged) {
+                dragged.position.x = newX;
+                dragged.position.y = newY;
+            }
+        })
+    );
+  };
+  
+  const handleMouseUp = () => {
+    setDraggedItem(null);
+  };
+
+  const updateMember = (id: string, updates: Partial<TeamMember>) => {
+    setTeamMembers(prev => prev.map(m => m.id === id ? { ...m, ...updates } : m));
+  };
+
+  const updateVehicle = (id: string, updates: Partial<Vehicle>) => {
+    setVehicles(prev => prev.map(v => v.id === id ? { ...v, ...updates } : v));
+  };
+
+  return (
+    <div
+      className="w-full h-full relative"
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      ref={boardRef}
+    >
+      <MrtToolbar onAddMember={handleAddMember} />
+
+      <div className="flex-1 p-4 w-full h-full">
+        {columns.map((column) => {
+          if (column.type === 'vehicle') {
+            const vehicle = vehicles.find(v => v.id === column.id);
+            if (!vehicle) return null;
+            return (
+              <VehicleColumn
+                key={vehicle.id}
+                vehicle={vehicle}
+                members={teamMembers.filter(m => m.vehicleId === vehicle.id)}
+                allSkills={ALL_SKILLS}
+                position={column.position}
+                onMouseDown={(e) => handleMouseDownOnColumn(e, column.id)}
+                updateVehicle={updateVehicle}
+                updateMember={updateMember}
+              />
+            );
+          }
+          if (column.type === 'unassigned') {
+            return (
+              <UnassignedColumn
+                key={column.id}
+                members={teamMembers.filter(m => m.vehicleId === null)}
+                allSkills={ALL_SKILLS}
+                position={column.position}
+                onMouseDown={(e) => handleMouseDownOnColumn(e, column.id)}
+                onRemoveMember={handleRemoveMember}
+                updateMember={updateMember}
+              />
+            )
+          }
+        })}
+      </div>
+    </div>
+  );
+}
