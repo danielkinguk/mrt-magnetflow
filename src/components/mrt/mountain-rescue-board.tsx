@@ -17,8 +17,9 @@ export function MountainRescueBoard() {
   const boardRef = useRef<HTMLDivElement>(null);
   
   const initialColumns: Column[] = [
-    ...INITIAL_VEHICLES.map((v, i) => ({ id: v.id, type: 'vehicle' as const, position: { x: i * 340 + 20, y: 20 } })),
-    { id: 'unassigned', type: 'unassigned' as const, position: { x: INITIAL_VEHICLES.length * 340 + 20, y: 20 } }
+    ...INITIAL_VEHICLES.map((v, i) => ({ id: v.id, type: 'vehicle' as const, position: { x: i * 340 + 20, y: 80 } })),
+    { id: 'unassigned', type: 'unassigned' as const, position: { x: INITIAL_VEHICLES.length * 340 + 20, y: 80 } },
+    { id: 'toolbar', type: 'toolbar' as const, position: { x: 20, y: 20 } },
   ];
 
   const [columns, setColumns] = useState<Column[]>(initialColumns);
@@ -99,12 +100,17 @@ export function MountainRescueBoard() {
       onMouseUp={handleMouseUp}
       ref={boardRef}
     >
-      <NoSSR>
-        <MrtToolbar onAddMember={handleAddMember} />
-      </NoSSR>
-
       <div className="flex-1 p-4 w-full h-full">
         {columns.map((column) => {
+          if (column.type === 'toolbar') {
+            return (
+              <NoSSR key={column.id}>
+                <div style={{ position: 'absolute', left: column.position.x, top: column.position.y }}>
+                  <MrtToolbar onAddMember={handleAddMember} onMouseDown={(e) => handleMouseDownOnColumn(e, column.id)} />
+                </div>
+              </NoSSR>
+            );
+          }
           if (column.type === 'vehicle') {
             const vehicle = vehicles.find(v => v.id === column.id);
             if (!vehicle) return null;

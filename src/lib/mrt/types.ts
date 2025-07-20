@@ -27,6 +27,6 @@ export type Vehicle = {
 
 export type Column = {
     id: string;
-    type: 'vehicle' | 'unassigned';
+    type: 'vehicle' | 'unassigned' | 'toolbar';
     position: Point;
 }
