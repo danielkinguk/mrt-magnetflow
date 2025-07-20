@@ -223,7 +223,7 @@ export function MountainRescueBoard() {
                 members={teamMembers.filter(m => m.vehicleId === vehicle.id)}
                 allSkills={ALL_SKILLS}
                 position={column.position}
-                onMouseDown={(e) => handleMouseDownOnColumn(e, column.id)}
+                onMouseDown={(e) => handleMouseDownOnColumn(e, vehicle.id)}
                 updateVehicle={updateVehicle}
                 updateMember={updateMember}
                 onResizeMemberStart={handleResizeMemberStart}
@@ -239,7 +239,7 @@ export function MountainRescueBoard() {
         className="w-full bg-slate-100 dark:bg-slate-950/50 border-t border-slate-200 dark:border-slate-800 p-2"
       >
         <h3 className="text-center font-bold text-sm mb-2 text-slate-600 dark:text-slate-400 uppercase tracking-wider">Unassigned</h3>
-        <div className="flex flex-wrap gap-2 justify-center p-2">
+        <div className="grid grid-cols-5 gap-2 p-2">
             {unassignedMembers.map(member => (
               <div key={member.id}>
                 <TeamMemberCard 
