@@ -11,7 +11,7 @@ export default function BoardPage({ params }: { params: { boardId: string } }) {
 
   return (
     <main className="w-full h-full overflow-hidden flex-1">
-      <MountainRescueBoard boardId={params.boardId} initialData={boardData} />
+      <MountainRescueBoard key={params.boardId} boardId={params.boardId} initialData={boardData} />
     </main>
   );
 }
