@@ -170,10 +170,15 @@ export function MountainRescueBoard() {
       const targetColumn = targetElement?.closest('[data-column-id]');
       const targetColumnId = targetColumn?.getAttribute('data-column-id');
 
+      let newVehicleId: string | null = null;
       if (targetColumnId) {
-        const newVehicleId = columns.find(c => c.id === targetColumnId && c.type === 'vehicle') ? targetColumnId : null;
-        updateMember(draggedMember.id, { vehicleId: newVehicleId });
+        const isVehicle = vehicles.some(v => v.id === targetColumnId);
+        if (isVehicle) {
+            newVehicleId = targetColumnId;
+        }
       }
+      updateMember(draggedMember.id, { vehicleId: newVehicleId });
+
       setDraggedMember(null);
     }
     
