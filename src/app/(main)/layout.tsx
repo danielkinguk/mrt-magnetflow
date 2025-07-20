@@ -44,6 +44,12 @@ export default function MainLayout({
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
+              <SidebarMenuButton href="/boards/mrt-board" tooltip="Boards" isActive={pathname.startsWith('/boards')}>
+                <LayoutGrid />
+                Boards
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
               <SidebarMenuButton href="/invite" tooltip="Invite">
                 <UserPlus />
                 Invite
