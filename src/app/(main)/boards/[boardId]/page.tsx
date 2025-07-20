@@ -12,6 +12,9 @@ export default function BoardPage({ params }: { params: { boardId: string } }) {
     notFound();
   }
 
+  // BoardClientPage is a client component, but it's rendered here in a server component.
+  // We can't pass functions like setTidyUp directly from a server component.
+  // Instead, the MainLayoutClient will manage passing the function down.
   return <BoardClientPage key={boardId} boardId={boardId} initialData={initialData} />;
 }
 

@@ -28,9 +28,10 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
   const isBoardPage = pathname.startsWith('/boards/');
 
-  // Pass setTidyUpFn down to children
+  // Pass setTidyUp down to children so they can register their tidy-up function
   const childrenWithProps = React.Children.map(children, child => {
-    if (React.isValidElement(child)) {
+    // Check if the child is the BoardClientPage component which needs the setTidyUp prop
+    if (React.isValidElement(child) && typeof child.type !== 'string' && (child.type.name === 'BoardClientPage' || child.props.boardId)) {
       // @ts-ignore
       return React.cloneElement(child, { setTidyUp: setTidyUpFn });
     }
@@ -50,7 +51,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
           <SidebarContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton href="/welcome" tooltip="Home" isActive={pathname === '/welcome' || pathname === '/'}>
+                <SidebarMenuButton href="/welcome" tooltip="Home" isActive={pathname === '/welcome'}>
                   <Home />
                   Home
                 </SidebarMenuButton>
