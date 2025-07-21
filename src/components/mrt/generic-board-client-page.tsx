@@ -9,6 +9,17 @@ const HORIZONTAL_SPACING = 340;
 const VERTICAL_POSITION = 120;
 const TOOLBAR_POSITION = { x: 20, y: 20 };
 
+// Secure ID generation using crypto.randomUUID when available, fallback to timestamp + random
+const generateSecureId = (prefix: string): string => {
+  if (typeof window !== 'undefined' && window.crypto && window.crypto.randomUUID) {
+    return `${prefix}-${window.crypto.randomUUID()}`;
+  }
+  // Fallback for environments without crypto.randomUUID
+  const timestamp = Date.now();
+  const randomPart = Math.random().toString(36).substring(2, 15);
+  return `${prefix}-${timestamp}-${randomPart}`;
+};
+
 export function GenericBoardClientPage({
   boardId,
   initialData,
@@ -75,7 +86,7 @@ export function GenericBoardClientPage({
   }, []);
 
   const handleCreateMagnet = (type: Magnet['type'], title: string, content?: string) => {
-    const newId = `magnet-${Date.now()}`;
+    const newId = generateSecureId('magnet');
     const newMagnet: Magnet = {
       id: newId,
       type,
@@ -92,7 +103,7 @@ export function GenericBoardClientPage({
   };
 
   const handleCreateContainer = (name: string, type: Container['type']) => {
-    const newId = `container-${Date.now()}`;
+    const newId = generateSecureId('container');
     const newContainer: Container = {
       id: newId,
       name,
@@ -119,8 +130,16 @@ export function GenericBoardClientPage({
     setMagnets(prev => prev.filter(magnet => magnet.id !== id));
   };
 
+  // Secure random color generation with predefined safe colors
   const getRandomColor = () => {
     const colors = ['#4CAF50', '#2196F3', '#FF9800', '#9C27B0', '#F44336', '#607D8B', '#795548', '#E91E63'];
+    // Use crypto.getRandomValues for secure random selection when available
+    if (typeof window !== 'undefined' && window.crypto && window.crypto.getRandomValues) {
+      const randomArray = new Uint32Array(1);
+      window.crypto.getRandomValues(randomArray);
+      return colors[randomArray[0] % colors.length];
+    }
+    // Fallback to Math.random for environments without crypto
     return colors[Math.floor(Math.random() * colors.length)];
   };
 

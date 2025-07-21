@@ -59,8 +59,13 @@ interface State {
 const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
 
 const addToRemoveQueue = (toastId: string) => {
+  // Clear existing timeout if it exists to prevent duplicate timers
   if (toastTimeouts.has(toastId)) {
-    return
+    const existingTimeout = toastTimeouts.get(toastId)
+    if (existingTimeout) {
+      clearTimeout(existingTimeout)
+    }
+    toastTimeouts.delete(toastId)
   }
 
   const timeout = setTimeout(() => {
@@ -72,6 +77,14 @@ const addToRemoveQueue = (toastId: string) => {
   }, TOAST_REMOVE_DELAY)
 
   toastTimeouts.set(toastId, timeout)
+}
+
+// Function to clean up all timers (useful for testing and cleanup)
+const clearAllTimeouts = () => {
+  toastTimeouts.forEach((timeout) => {
+    clearTimeout(timeout)
+  })
+  toastTimeouts.clear()
 }
 
 export const reducer = (state: State, action: Action): State => {
@@ -117,10 +130,20 @@ export const reducer = (state: State, action: Action): State => {
     }
     case "REMOVE_TOAST":
       if (action.toastId === undefined) {
+        // Clear all timeouts when removing all toasts
+        clearAllTimeouts()
         return {
           ...state,
           toasts: [],
         }
+      }
+      // Ensure timeout is cleared when removing specific toast
+      if (toastTimeouts.has(action.toastId)) {
+        const timeout = toastTimeouts.get(action.toastId)
+        if (timeout) {
+          clearTimeout(timeout)
+        }
+        toastTimeouts.delete(action.toastId)
       }
       return {
         ...state,
@@ -182,7 +205,7 @@ function useToast() {
         listeners.splice(index, 1)
       }
     }
-  }, [state])
+  }, []) // Remove state from dependencies to prevent unnecessary re-renders and listener duplications
 
   return {
     ...state,

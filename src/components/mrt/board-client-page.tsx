@@ -113,14 +113,36 @@ export function BoardClientPage({
   }, []);
 
   const handleCreateResource = (type: 'person' | 'equipment' | 'vehicle' | 'team', name: string) => {
-    const newId = `${type}-${Date.now()}`;
+    // Secure ID generation using crypto.randomUUID when available
+    const generateSecureId = (prefix: string): string => {
+      if (typeof window !== 'undefined' && window.crypto && window.crypto.randomUUID) {
+        return `${prefix}-${window.crypto.randomUUID()}`;
+      }
+      // Fallback for environments without crypto.randomUUID
+      const timestamp = Date.now();
+      const randomPart = Math.random().toString(36).substring(2, 15);
+      return `${prefix}-${timestamp}-${randomPart}`;
+    };
+
+    const newId = generateSecureId(type);
     const newPosition = { x: 20, y: 500 };
 
     if (type === 'vehicle' || type === 'team') {
+      // Generate secure random color
+      const generateSecureColor = (): string => {
+        const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FECA57', '#FF9FF3', '#54A0FF', '#5F27CD'];
+        if (typeof window !== 'undefined' && window.crypto && window.crypto.getRandomValues) {
+          const randomArray = new Uint32Array(1);
+          window.crypto.getRandomValues(randomArray);
+          return colors[randomArray[0] % colors.length];
+        }
+        return colors[Math.floor(Math.random() * colors.length)];
+      };
+
       const newContainer = {
         id: newId,
         name,
-        color: `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`
+        color: generateSecureColor()
       };
 
       const stateSetter = type === 'vehicle' ? setVehicles : setTeams;

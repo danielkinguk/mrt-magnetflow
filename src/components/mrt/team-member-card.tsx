@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, type MouseEvent } from 'react';
+import { useState, useEffect, useRef, type MouseEvent } from 'react';
 import { Card } from '@/components/ui/card';
 import type { TeamMember, Skill } from '@/lib/mrt/types';
 import { cn } from '@/lib/utils';
@@ -41,47 +41,48 @@ export function TeamMemberCard({ member, skills, isUnassigned = false, isFloatin
   };
 
   const [clickCount, setClickCount] = useState(0);
-  const [clickTimer, setClickTimer] = useState<NodeJS.Timeout | null>(null);
+  const clickTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Cleanup timer on unmount
+  // Cleanup timer on unmount and whenever clickTimerRef changes
   useEffect(() => {
     return () => {
-      if (clickTimer) {
-        clearTimeout(clickTimer);
+      if (clickTimerRef.current) {
+        clearTimeout(clickTimerRef.current);
+        clickTimerRef.current = null;
       }
     };
-  }, [clickTimer]);
+  }, []);
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     // Increment click count
     const newClickCount = clickCount + 1;
     setClickCount(newClickCount);
 
-    // Clear any existing timer
-    if (clickTimer) {
-      clearTimeout(clickTimer);
+    // Clear any existing timer to prevent memory leaks
+    if (clickTimerRef.current) {
+      clearTimeout(clickTimerRef.current);
+      clickTimerRef.current = null;
     }
 
     // Set a timer to reset click count and start drag if no double-click
-    const timer = setTimeout(() => {
+    clickTimerRef.current = setTimeout(() => {
       setClickCount(0);
+      clickTimerRef.current = null;
       // Only start drag if it's not a double-click
       if (newClickCount === 1) {
         onMouseDown(e, member.id);
       }
     }, 200); // 200ms to detect double-click
-
-    setClickTimer(timer);
   };
 
   const handleDoubleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
-    // Clear the timer to prevent drag from starting
-    if (clickTimer) {
-      clearTimeout(clickTimer);
-      setClickTimer(null);
+    // Clear the timer to prevent drag from starting and reset click count
+    if (clickTimerRef.current) {
+      clearTimeout(clickTimerRef.current);
+      clickTimerRef.current = null;
     }
     setClickCount(0);
     
