@@ -7,6 +7,8 @@ import { MrtToolbar } from '@/components/mrt/mrt-toolbar';
 import { ALL_SKILLS } from '@/lib/mrt/data';
 import { NoSSR } from '@/components/no-ssr';
 import { TeamMemberCard } from './team-member-card';
+import { Button } from '@/components/ui/button';
+import { Plus, Minus, RotateCcw } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -76,13 +78,24 @@ export function MountainRescueBoard({
   const [draggedItem, setDraggedItem] = useState<DraggedItem | null>(null);
   const [resizedItem, setResizedItem] = useState<ResizedItem | null>(null);
   const [newResource, setNewResource] = useState<NewResourceState>({ open: false, name: '' });
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
 
   const getBoardCoordinates = useCallback((e: MouseEvent<HTMLElement> | React.MouseEvent<HTMLElement>) => {
     if (!boardRef.current) return { x: 0, y: 0 };
     const rect = boardRef.current.getBoundingClientRect();
-    const scale = rect.width / boardRef.current.offsetWidth;
-    return { x: (e.clientX - rect.left) / scale, y: (e.clientY - rect.top) / scale };
-  }, []);
+    return { 
+      x: (e.clientX - rect.left - pan.x) / zoom, 
+      y: (e.clientY - rect.top - pan.y) / zoom 
+    };
+  }, [zoom, pan]);
+
+  // Throttle mouse move events for smoother performance
+  const throttledMouseMove = useCallback((e: MouseEvent<HTMLElement>) => {
+    if (draggedItem || resizedItem) {
+      handleMouseMove(e);
+    }
+  }, [draggedItem, resizedItem]);
 
   const handleOpenResourceDialog = (name: string) => {
     setNewResource({ open: true, name });
@@ -94,12 +107,34 @@ export function MountainRescueBoard({
     onCreateResource(type, name);
     setNewResource({ open: false, name: '' });
   };
+
+  const handleZoomIn = () => {
+    setZoom(prev => Math.min(prev + 0.25, 3));
+  };
+
+  const handleZoomOut = () => {
+    setZoom(prev => Math.max(prev - 0.25, 0.25));
+  };
+
+  const handleResetZoom = () => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  };
   
-  const handleMouseDownOnColumn = (e: MouseEvent, id: string) => {
+  const handleMouseDownOnColumn = (e: MouseEvent<Element>, id: string) => {
     e.stopPropagation();
     const column = columns.find(c => c.id === id);
     if (!column) return;
-    const boardPos = getBoardCoordinates(e);
+    // Ensure we always pass a MouseEvent with HTMLElement as currentTarget to getBoardCoordinates
+    // This avoids type errors when e.currentTarget is not HTMLElement
+    let eventForCoords: MouseEvent<HTMLElement>;
+    if (e.currentTarget instanceof HTMLElement) {
+      eventForCoords = e as MouseEvent<HTMLElement>;
+    } else {
+      // Fallback: synthesize a MouseEvent with boardRef.current as currentTarget
+      eventForCoords = Object.assign({}, e, { currentTarget: boardRef.current }) as MouseEvent<HTMLElement>;
+    }
+    const boardPos = getBoardCoordinates(eventForCoords);
     setDraggedItem({
       id,
       type: 'column',
@@ -166,22 +201,27 @@ export function MountainRescueBoard({
     });
   };
   
-  const handleMouseMove = (e: MouseEvent) => {
-    const boardPos = getBoardCoordinates(e);
+  const handleMouseMove = (e: MouseEvent<HTMLElement>) => {
+    // Use requestAnimationFrame for smoother updates
+    requestAnimationFrame(() => {
+      const boardPos = getBoardCoordinates(e);
 
-    if (draggedItem) {
-      let newX = boardPos.x - draggedItem.offset.x;
-      let newY = boardPos.y - draggedItem.offset.y;
-      
-      newX = Math.round(newX / GRID_SIZE) * GRID_SIZE;
-      newY = Math.round(newY / GRID_SIZE) * GRID_SIZE;
+      if (draggedItem) {
+        let newX = boardPos.x - draggedItem.offset.x;
+        let newY = boardPos.y - draggedItem.offset.y;
+        
+        // Only snap to grid for columns, allow smooth movement for members
+        if (draggedItem.type === 'column') {
+          newX = Math.round(newX / GRID_SIZE) * GRID_SIZE;
+          newY = Math.round(newY / GRID_SIZE) * GRID_SIZE;
+        }
 
-      if (draggedItem.type === 'column') {
-        onUpdateColumn(draggedItem.id, { position: { x: newX, y: newY } });
-      } else if (draggedItem.type === 'member') {
-        onUpdateMember(draggedItem.id, { position: { x: newX, y: newY } });
-      }
-    } else if (resizedItem) {
+        if (draggedItem.type === 'column') {
+          onUpdateColumn(draggedItem.id, { position: { x: newX, y: newY } });
+        } else if (draggedItem.type === 'member') {
+          onUpdateMember(draggedItem.id, { position: { x: newX, y: newY } });
+        }
+      } else if (resizedItem) {
         const dx = e.clientX - resizedItem.initialPos.x;
         const dy = e.clientY - resizedItem.initialPos.y;
         
@@ -194,20 +234,23 @@ export function MountainRescueBoard({
           const newHeight = Math.max(MIN_TOOLBAR_HEIGHT, resizedItem.initialSize.height + dy);
           onUpdateColumn(resizedItem.id, { width: newWidth, height: newHeight });
         }
-    }
+      }
+    });
   };
   
   const handleMouseUp = (e: React.MouseEvent<HTMLElement>) => {
     if (draggedItem && draggedItem.type === 'member') {
+      // Temporarily hide the dragged element to detect drop target
       const draggedEl = document.querySelector(`[data-member-id="${draggedItem.id}"]`) as HTMLElement;
-      let originalPointerEvents: string | null = null;
-  
+      let originalDisplay: string | null = null;
+      
       if (draggedEl) {
-        originalPointerEvents = draggedEl.style.pointerEvents;
-        draggedEl.style.pointerEvents = 'none';
+        originalDisplay = draggedEl.style.display;
+        draggedEl.style.display = 'none';
       }
   
       try {
+        // Now we can properly detect the drop target
         const targetElement = document.elementFromPoint(e.clientX, e.clientY);
         const targetColumnEl = targetElement?.closest('[data-column-id]');
         const targetColumnId = targetColumnEl?.getAttribute('data-column-id');
@@ -222,9 +265,9 @@ export function MountainRescueBoard({
         onUpdateMember(draggedItem.id, { assignee: newAssignee, position: undefined });
 
       } finally {
-        // Always restore the element's interactivity and clear drag state
-        if (draggedEl && originalPointerEvents !== null) {
-          draggedEl.style.pointerEvents = originalPointerEvents;
+        // Always restore the element's visibility and clear drag state
+        if (draggedEl && originalDisplay !== null) {
+          draggedEl.style.display = originalDisplay;
         }
         setDraggedItem(null);
         setResizedItem(null);
@@ -236,11 +279,9 @@ export function MountainRescueBoard({
     }
   };
   
-  const unassignedMembers = [...teamMembers.filter(m => m.assignee === null && m.position === undefined)].sort((a, b) => {
-    if (a.type === 'person' && b.type === 'equipment') return -1;
-    if (a.type === 'equipment' && b.type === 'person') return 1;
-    return 0;
-  });
+  const unassignedMembers = teamMembers.filter(m => m.assignee === null && m.position === undefined);
+  const unassignedPeople = unassignedMembers.filter(m => m.type === 'person');
+  const unassignedEquipment = unassignedMembers.filter(m => m.type === 'equipment');
 
   const floatingMembers = teamMembers.filter(m => m.position !== undefined);
 
@@ -248,23 +289,58 @@ export function MountainRescueBoard({
     <div
       className="w-full h-full relative flex flex-col bg-background"
     >
+      {/* Zoom Controls */}
+      <div className="absolute top-4 right-4 z-50 flex items-center gap-1 bg-background/80 backdrop-blur-sm border rounded-lg p-1">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleZoomOut}
+          disabled={zoom <= 0.25}
+          className="h-8 w-8"
+          title="Zoom Out"
+        >
+          <Minus className="h-4 w-4" />
+        </Button>
+        <div className="px-2 text-sm font-medium min-w-[3rem] text-center">
+          {Math.round(zoom * 100)}%
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleZoomIn}
+          disabled={zoom >= 3}
+          className="h-8 w-8"
+          title="Zoom In"
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleResetZoom}
+          className="h-8 w-8"
+          title="Reset Zoom"
+        >
+          <RotateCcw className="h-4 w-4" />
+        </Button>
+      </div>
       <div 
         className={cn("flex-1 w-full h-full relative", {
           'select-none': !!draggedItem
         })}
-        onMouseMove={handleMouseMove}
+        onMouseMove={throttledMouseMove}
         onMouseUp={handleMouseUp}
         ref={boardRef}
       >
         <AlertDialog open={newResource.open} onOpenChange={(open) => setNewResource(prev => ({...prev, open}))}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
+          <AlertDialogContent className="text-center">
+            <AlertDialogHeader className="text-center">
               <AlertDialogTitle>Create New Resource</AlertDialogTitle>
               <AlertDialogDescription>
                 What type of resource is "{newResource.name}"?
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter>
+            <AlertDialogFooter className="flex justify-center gap-2">
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction onClick={() => handleCreateResource('person')}>Person</AlertDialogAction>
               <AlertDialogAction onClick={() => handleCreateResource('equipment')}>Equipment</AlertDialogAction>
@@ -274,7 +350,14 @@ export function MountainRescueBoard({
           </AlertDialogContent>
         </AlertDialog>
 
-        <div className="p-4 w-full h-full relative">
+        <div 
+          className="p-4 w-full h-full relative"
+          style={{
+            transform: `scale(${zoom}) translate(${pan.x}px, ${pan.y}px)`,
+            transformOrigin: 'top left',
+            transition: 'transform 0.1s ease-out'
+          }}
+        >
           {columns.map((column) => {
             if (column.type === 'toolbar') {
               return (
@@ -319,7 +402,15 @@ export function MountainRescueBoard({
           })}
 
           {floatingMembers.map(member => (
-              <div key={member.id} className="absolute z-50" style={{left: member.position!.x, top: member.position!.y}}>
+              <div 
+                key={member.id} 
+                className="absolute z-50 transform-gpu" 
+                style={{
+                  left: member.position!.x, 
+                  top: member.position!.y,
+                  transform: 'translate3d(0, 0, 0)' // Force hardware acceleration
+                }}
+              >
                 <TeamMemberCard 
                   member={member} 
                   skills={ALL_SKILLS} 
@@ -340,21 +431,50 @@ export function MountainRescueBoard({
         className="w-full bg-background/50 border-t border-border p-2 min-h-24"
       >
         <h3 className="text-center font-bold text-sm mb-2 text-foreground/60 uppercase tracking-wider">Unassigned Resources</h3>
-        <div className="grid grid-cols-5 gap-2 p-2">
-            {unassignedMembers.map(member => (
-              <div key={member.id} className="mb-2">
-                <TeamMemberCard 
-                  member={member} 
-                  skills={ALL_SKILLS} 
-                  isUnassigned={true}
-                  onRemove={() => onRemoveMember(member.id)} 
-                  onUpdate={(updates) => onUpdateMember(member.id, updates)}
-                  onResizeStart={(e, id) => handleResizeStart(e, id, 'member')}
-                  onMouseDown={handleMouseDownOnMember}
-                />
-              </div>
-            ))}
-        </div>
+        
+        {/* People Row */}
+        {unassignedPeople.length > 0 && (
+          <div className="mb-4">
+            <h4 className="text-xs font-semibold mb-2 text-foreground/70 uppercase tracking-wider">People</h4>
+            <div className="grid grid-cols-5 gap-2 p-2">
+              {unassignedPeople.map(member => (
+                <div key={member.id} className="mb-2">
+                  <TeamMemberCard 
+                    member={member} 
+                    skills={ALL_SKILLS} 
+                    isUnassigned={true}
+                    onRemove={() => onRemoveMember(member.id)} 
+                    onUpdate={(updates) => onUpdateMember(member.id, updates)}
+                    onResizeStart={(e, id) => handleResizeStart(e, id, 'member')}
+                    onMouseDown={handleMouseDownOnMember}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Equipment Row */}
+        {unassignedEquipment.length > 0 && (
+          <div>
+            <h4 className="text-xs font-semibold mb-2 text-foreground/70 uppercase tracking-wider">Equipment</h4>
+            <div className="grid grid-cols-5 gap-2 p-2">
+              {unassignedEquipment.map(member => (
+                <div key={member.id} className="mb-2">
+                  <TeamMemberCard 
+                    member={member} 
+                    skills={ALL_SKILLS} 
+                    isUnassigned={true}
+                    onRemove={() => onRemoveMember(member.id)} 
+                    onUpdate={(updates) => onUpdateMember(member.id, updates)}
+                    onResizeStart={(e, id) => handleResizeStart(e, id, 'member')}
+                    onMouseDown={handleMouseDownOnMember}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

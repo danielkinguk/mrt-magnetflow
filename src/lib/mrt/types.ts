@@ -53,3 +53,41 @@ export type BoardData = {
   vehicles: Vehicle[];
   teams: Team[];
 }
+
+// Generic Magnetic Board Types
+export type MagnetType = 'note' | 'idea' | 'task' | 'person' | 'equipment' | 'vehicle' | 'team' | 'category';
+
+export type Magnet = {
+  id: string;
+  type: MagnetType;
+  title: string;
+  content?: string;
+  color?: string;
+  tags?: string[];
+  position?: Point;
+  width?: number;
+  height?: number;
+  assignee?: string; // ID of container/category
+  metadata?: Record<string, any>;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type Container = {
+  id: string;
+  name: string;
+  type: 'category' | 'vehicle' | 'team' | 'toolbar';
+  color: string;
+  position: Point;
+  width?: number;
+  height?: number;
+  magnets: string[]; // Array of magnet IDs
+};
+
+export type GenericBoardData = {
+  magnets: Magnet[];
+  containers: Container[];
+  boardType: 'mrt' | 'inspiration' | 'personal' | 'work' | 'resource' | 'general';
+  title: string;
+  description?: string;
+};

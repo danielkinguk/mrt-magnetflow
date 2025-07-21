@@ -19,30 +19,46 @@ import {
 import { LayoutGrid, UserPlus, Folder, Home, LogOut } from 'lucide-react';
 import { ALL_BOARDS } from '@/lib/mrt/board-data';
 import { FullscreenProvider, useFullscreen } from '@/hooks/use-fullscreen';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { isMaximized } = useFullscreen();
   const [tidyUpFn, setTidyUpFn] = useState<(() => void) | undefined>(undefined);
 
+  // Create a stable setTidyUp function
+  const setTidyUp = useCallback((fn: () => void) => {
+    console.log('setTidyUp called with function:', !!fn);
+    setTidyUpFn(() => fn);
+  }, []);
+
   const isBoardPage = pathname.startsWith('/boards/');
+
+  // Create a simple tidy function that works
+  const handleTidyUp = useCallback(() => {
+    // Find all column elements and align them
+    const columns = document.querySelectorAll('[data-column-id]');
+    columns.forEach((column, index) => {
+      const element = column as HTMLElement;
+      if (element) {
+        element.style.position = 'absolute';
+        element.style.left = `${index * 340 + 20}px`;
+        element.style.top = '120px';
+      }
+    });
+  }, []);
 
   // This effect ensures that the tidyUp function is cleared when navigating away from a board page.
   useEffect(() => {
     if (!isBoardPage) {
       setTidyUpFn(undefined);
+    } else {
+      setTidyUpFn(() => handleTidyUp);
     }
-  }, [isBoardPage]);
+  }, [isBoardPage, handleTidyUp]);
 
-  // Pass setTidyUp down to children so they can register their tidy-up function
-  const childrenWithProps = React.Children.map(children, child => {
-    if (React.isValidElement(child) && (child.type as any).name === 'BoardClientPage') {
-      // @ts-ignore
-      return React.cloneElement(child, { setTidyUp: setTidyUpFn });
-    }
-    return child;
-  });
+  // Just render children normally
+  const childrenWithProps = children;
 
   return (
     <SidebarProvider>
@@ -57,27 +73,39 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
           <SidebarContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton href="/welcome" tooltip="Home" isActive={pathname === '/welcome'}>
-                  <Home />
-                  Home
+                <SidebarMenuButton
+                  asChild
+                  tooltip="Home"
+                  isActive={pathname === '/welcome'}
+                >
+                  <a href="/welcome">
+                    <Home />
+                    Home
+                  </a>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton href="/boards/mrt-board" tooltip="Boards" isActive={pathname.startsWith('/boards')}>
-                  <LayoutGrid />
-                  Boards
+                <SidebarMenuButton
+                  asChild
+                  tooltip="Boards"
+                  isActive={pathname === '/boards'}
+                >
+                  <a href="/boards">
+                    <LayoutGrid />
+                    Boards
+                  </a>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+
               <SidebarMenuItem>
-                <SidebarMenuButton href="/invite" tooltip="Invite">
-                  <UserPlus />
-                  Invite
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton href="/logout" tooltip="Logout">
-                  <LogOut />
-                  Logout
+                <SidebarMenuButton
+                  asChild
+                  tooltip="Logout"
+                >
+                  <a href="/logout">
+                    <LogOut />
+                    Logout
+                  </a>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -89,11 +117,13 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                   {ALL_BOARDS.map((board) => (
                     <SidebarMenuItem key={board.id}>
                       <SidebarMenuButton
-                        href={`/boards/${board.id}`}
+                        asChild
                         isActive={pathname === `/boards/${board.id}`}
                       >
-                        <Folder />
-                        {board.name}
+                        <a href={`/boards/${board.id}`}>
+                          <Folder />
+                          {board.name}
+                        </a>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   ))}
@@ -104,9 +134,34 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         </Sidebar>
       )}
       <SidebarInset className={isMaximized ? "ml-0 !p-0" : ""}>
-        <Header onTidyUp={isBoardPage ? tidyUpFn : undefined} />
-        {childrenWithProps}
+        <Header />
+        {isBoardPage ? (
+          // Full height layout for board pages (no footer)
+          <div className="h-full">
+            {childrenWithProps}
+          </div>
+        ) : (
+          // Flex layout for other pages (with footer)
+          <div className="flex flex-col min-h-screen">
+            <main className="flex-1">
+              {childrenWithProps}
+            </main>
+            <footer className="py-6 md:px-8 md:py-0 border-t">
+              <div className="container flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row">
+                <p className="text-balance text-center text-sm leading-loose text-muted-foreground md:text-left">
+                  Built by you. Powered by DK Apps - Copyright 2025
+                </p>
+              </div>
+            </footer>
+          </div>
+        )}
       </SidebarInset>
+      {isBoardPage && (
+        <div style={{display: 'none'}}>
+          Debug: isBoardPage={isBoardPage.toString()}, tidyUpFn={tidyUpFn ? 'available' : 'undefined'}
+        </div>
+      )}
+
     </SidebarProvider>
   );
 }

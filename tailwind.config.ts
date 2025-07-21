@@ -88,10 +88,33 @@ export default {
             height: '0',
           },
         },
+        'pulse-light': {
+          '0%': {
+            backgroundPosition: '-200% 0',
+            filter: 'brightness(1)',
+          },
+          '25%': {
+            backgroundPosition: '0% 0',
+            filter: 'brightness(1.2)',
+          },
+          '50%': {
+            backgroundPosition: '200% 0',
+            filter: 'brightness(1.4)',
+          },
+          '75%': {
+            backgroundPosition: '0% 0',
+            filter: 'brightness(1.2)',
+          },
+          '100%': {
+            backgroundPosition: '-200% 0',
+            filter: 'brightness(1)',
+          },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'pulse-light': 'pulse-light 10s ease-in-out infinite',
       },
     },
   },

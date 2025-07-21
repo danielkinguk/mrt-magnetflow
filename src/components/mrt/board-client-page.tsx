@@ -22,11 +22,19 @@ export function BoardClientPage({
   const [vehicles, setVehicles] = useState<Vehicle[]>(initialData.vehicles);
   const [teams, setTeams] = useState<Team[]>(initialData.teams);
 
-  const getInitialColumns = (data: BoardData): Column[] => [
-    ...data.vehicles.map((v, i) => ({ id: v.id, type: 'vehicle' as const, position: { x: i * HORIZONTAL_SPACING + 20, y: VERTICAL_POSITION } })),
-    ...data.teams.map((t, i) => ({ id: t.id, type: 'team' as const, position: { x: (i + data.vehicles.length) * HORIZONTAL_SPACING + 20, y: VERTICAL_POSITION } })),
+  const getInitialColumns = useCallback((data: BoardData): Column[] => [
+    ...data.vehicles.map((v, i) => ({ 
+      id: v.id, 
+      type: 'vehicle' as const, 
+      position: { x: i * HORIZONTAL_SPACING + 20, y: VERTICAL_POSITION } 
+    })),
+    ...data.teams.map((t, i) => ({ 
+      id: t.id, 
+      type: 'team' as const, 
+      position: { x: (i + data.vehicles.length) * HORIZONTAL_SPACING + 20, y: VERTICAL_POSITION } 
+    })),
     { id: 'toolbar', type: 'toolbar' as const, position: TOOLBAR_POSITION },
-  ];
+  ], []);
 
   const [columns, setColumns] = useState<Column[]>(getInitialColumns(initialData));
 
@@ -69,8 +77,10 @@ export function BoardClientPage({
   }, []);
 
   useEffect(() => {
+    console.log('BoardClientPage: setTidyUp received:', !!setTidyUp);
     if (setTidyUp) {
       setTidyUp(() => handleTidyUp);
+      console.log('BoardClientPage: handleTidyUp registered successfully');
     }
   }, [setTidyUp, handleTidyUp]);
 
@@ -150,7 +160,7 @@ export function BoardClientPage({
   };
 
   return (
-    <main className="w-full h-full overflow-hidden flex-1">
+    <main className="w-full h-full overflow-hidden">
       <MountainRescueBoard
         key={boardId}
         teamMembers={teamMembers}

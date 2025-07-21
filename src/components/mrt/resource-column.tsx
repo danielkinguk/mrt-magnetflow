@@ -106,7 +106,7 @@ export function ResourceColumn({
               <TeamMemberCard 
                 member={member} 
                 skills={allSkills} 
-                onUpdate={onUpdateMember} 
+                onUpdate={(updates) => onUpdateMember(member.id, updates)} 
                 onResizeStart={onResizeMemberStart}
                 onMouseDown={onMemberMouseDown}
               />
