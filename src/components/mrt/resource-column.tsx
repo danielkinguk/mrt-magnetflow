@@ -70,37 +70,42 @@ export function ResourceColumn({
       style={{ left: position.x, top: position.y }}
       onMouseDown={onMouseDown}
     >
-      <Card data-column-id={container.id} data-column-type={type} className="w-80 flex-shrink-0 bg-card/80 border cursor-move group relative">
-        <CardHeader className="p-2" onDoubleClick={handleDoubleClick}>
-          {isEditing ? (
-             <Input
-                type="text"
-                value={name}
-                onChange={handleNameChange}
-                onBlur={handleBlur}
-                onKeyDown={handleKeyDown}
-                className="h-9 text-lg font-bold text-center"
-                autoFocus
-                onMouseDown={(e) => e.stopPropagation()}
-             />
-          ) : (
-            <CardTitle
-              className="text-center text-lg font-bold p-2 rounded-md text-primary-foreground"
-              style={{ backgroundColor: container.color }}
-            >
-              {container.name}
-            </CardTitle>
-          )}
-        </CardHeader>
+      <Card data-column-id={container.id} data-column-type={type} className="w-80 flex-shrink-0 cursor-move group relative transition-all duration-200 hover:shadow-xl">
+        <div className="bg-gradient-to-br from-white/90 to-gray-50/90 dark:from-gray-800/90 dark:to-gray-900/90 backdrop-blur-sm border border-gray-200/60 dark:border-gray-700/60 rounded-t-lg">
+          <CardHeader className="p-3" onDoubleClick={handleDoubleClick}>
+            {isEditing ? (
+               <Input
+                  type="text"
+                  value={name}
+                  onChange={handleNameChange}
+                  onBlur={handleBlur}
+                  onKeyDown={handleKeyDown}
+                  className="h-10 text-lg font-bold text-center bg-white/80 dark:bg-gray-800/80 border-gray-300 dark:border-gray-600"
+                  autoFocus
+                  onMouseDown={(e) => e.stopPropagation()}
+               />
+            ) : (
+              <CardTitle
+                className="text-center text-lg font-bold py-3 px-4 rounded-lg text-white shadow-lg"
+                style={{ 
+                  background: `linear-gradient(135deg, ${container.color}, ${container.color}dd)`,
+                  boxShadow: `0 4px 12px ${container.color}40`
+                }}
+              >
+                {container.name}
+              </CardTitle>
+            )}
+          </CardHeader>
+        </div>
         <button
-          className="absolute top-2 right-2 w-6 h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center cursor-pointer hover:bg-destructive/90 opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute top-3 right-3 w-7 h-7 bg-red-500/10 hover:bg-red-500/20 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 rounded-full flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-lg"
           onClick={(e) => { e.stopPropagation(); onRemoveContainer(container.id, type); }}
           onMouseDown={(e) => e.stopPropagation()}
           title={`Delete ${type}`}
         >
-          <Trash2 className="w-3.5 h-3.5" />
+          <Trash2 className="w-4 h-4" />
         </button>
-        <CardContent className="p-2 min-h-[200px] space-y-2">
+        <CardContent className="p-3 min-h-[200px] space-y-2 bg-gradient-to-b from-gray-50/50 to-white/50 dark:from-gray-800/50 dark:to-gray-900/50 rounded-b-lg">
           {sortedMembers.map(member => (
             <div key={member.id} className="mb-2">
               <TeamMemberCard 

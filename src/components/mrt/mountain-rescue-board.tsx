@@ -49,6 +49,7 @@ type NewResourceState = {
 }
 
 interface MountainRescueBoardProps {
+  boardId?: string;
   teamMembers: TeamMember[];
   vehicles: Vehicle[];
   teams: Team[];
@@ -62,6 +63,7 @@ interface MountainRescueBoardProps {
 }
 
 export function MountainRescueBoard({ 
+  boardId,
   teamMembers, 
   vehicles, 
   teams, 
@@ -78,8 +80,23 @@ export function MountainRescueBoard({
   const [draggedItem, setDraggedItem] = useState<DraggedItem | null>(null);
   const [resizedItem, setResizedItem] = useState<ResizedItem | null>(null);
   const [newResource, setNewResource] = useState<NewResourceState>({ open: false, name: '' });
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
+  
+  // Load zoom and pan from localStorage on component mount
+  const [zoom, setZoom] = useState(() => {
+    if (boardId && typeof window !== 'undefined') {
+      const saved = localStorage.getItem(`magnetflow-zoom-${boardId}`);
+      return saved ? parseFloat(saved) : 1;
+    }
+    return 1;
+  });
+  
+  const [pan, setPan] = useState(() => {
+    if (boardId && typeof window !== 'undefined') {
+      const saved = localStorage.getItem(`magnetflow-pan-${boardId}`);
+      return saved ? JSON.parse(saved) : { x: 0, y: 0 };
+    }
+    return { x: 0, y: 0 };
+  });
 
   const getBoardCoordinates = useCallback((e: MouseEvent<HTMLElement> | React.MouseEvent<HTMLElement>) => {
     if (!boardRef.current) return { x: 0, y: 0 };
@@ -109,16 +126,32 @@ export function MountainRescueBoard({
   };
 
   const handleZoomIn = () => {
-    setZoom(prev => Math.min(prev + 0.25, 3));
+    setZoom(prev => {
+      const newZoom = Math.min(prev + 0.25, 3);
+      if (boardId && typeof window !== 'undefined') {
+        localStorage.setItem(`magnetflow-zoom-${boardId}`, newZoom.toString());
+      }
+      return newZoom;
+    });
   };
 
   const handleZoomOut = () => {
-    setZoom(prev => Math.max(prev - 0.25, 0.25));
+    setZoom(prev => {
+      const newZoom = Math.max(prev - 0.25, 0.25);
+      if (boardId && typeof window !== 'undefined') {
+        localStorage.setItem(`magnetflow-zoom-${boardId}`, newZoom.toString());
+      }
+      return newZoom;
+    });
   };
 
   const handleResetZoom = () => {
     setZoom(1);
     setPan({ x: 0, y: 0 });
+    if (boardId && typeof window !== 'undefined') {
+      localStorage.setItem(`magnetflow-zoom-${boardId}`, '1');
+      localStorage.setItem(`magnetflow-pan-${boardId}`, JSON.stringify({ x: 0, y: 0 }));
+    }
   };
   
   const handleMouseDownOnColumn = (e: MouseEvent<Element>, id: string) => {

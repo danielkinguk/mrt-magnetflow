@@ -163,6 +163,7 @@ export function BoardClientPage({
     <main className="w-full h-full overflow-hidden">
       <MountainRescueBoard
         key={boardId}
+        boardId={boardId}
         teamMembers={teamMembers}
         vehicles={vehicles}
         teams={teams}
