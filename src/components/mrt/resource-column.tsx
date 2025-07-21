@@ -111,6 +111,8 @@ export function ResourceColumn({
               <TeamMemberCard 
                 member={member} 
                 skills={allSkills} 
+                isUnassigned={false}
+                isFloating={false}
                 onUpdate={(updates) => onUpdateMember(member.id, updates)} 
                 onResizeStart={onResizeMemberStart}
                 onMouseDown={onMemberMouseDown}

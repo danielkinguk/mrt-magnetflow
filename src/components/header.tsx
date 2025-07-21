@@ -29,7 +29,21 @@ export function Header() {
   const handleShareBigScreen = () => {
     // Open in new window for big screen display
     const bigScreenUrl = `${window.location.origin}${pathname}?display=bigscreen`;
-    window.open(bigScreenUrl, '_blank', 'width=1920,height=1080');
+    const newWindow = window.open(bigScreenUrl, '_blank', 'width=1920,height=1080');
+    
+    // Maximize the window after it opens
+    if (newWindow) {
+      newWindow.addEventListener('load', () => {
+        try {
+          // Try to maximize the window
+          newWindow.moveTo(0, 0);
+          newWindow.resizeTo(screen.width, screen.height);
+        } catch (e) {
+          // Fallback: just ensure it's large enough
+          console.log('Could not maximize window, using fallback size');
+        }
+      });
+    }
   };
 
   const handleShareEmail = () => {

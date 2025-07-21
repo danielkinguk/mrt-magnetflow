@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type MouseEvent } from 'react';
+import { useState, useEffect, type MouseEvent } from 'react';
 import { Card } from '@/components/ui/card';
 import type { TeamMember, Skill } from '@/lib/mrt/types';
 import { cn } from '@/lib/utils';
@@ -22,10 +22,7 @@ export function TeamMemberCard({ member, skills, isUnassigned = false, isFloatin
   const memberSkills = skills.filter(s => member.skills.includes(s.id));
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(`${member.firstName} ${member.lastName}`);
-
-  const handleDoubleClick = () => {
-    setIsEditing(true);
-  };
+  const isPerson = member.type === 'person';
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setName(e.target.value);
@@ -42,13 +39,83 @@ export function TeamMemberCard({ member, skills, isUnassigned = false, isFloatin
       handleBlur();
     }
   };
-  
-  const isPerson = member.type === 'person';
+
+  const [clickCount, setClickCount] = useState(0);
+  const [clickTimer, setClickTimer] = useState<NodeJS.Timeout | null>(null);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (clickTimer) {
+        clearTimeout(clickTimer);
+      }
+    };
+  }, [clickTimer]);
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Increment click count
+    const newClickCount = clickCount + 1;
+    setClickCount(newClickCount);
+
+    // Clear any existing timer
+    if (clickTimer) {
+      clearTimeout(clickTimer);
+    }
+
+    // Set a timer to reset click count and start drag if no double-click
+    const timer = setTimeout(() => {
+      setClickCount(0);
+      // Only start drag if it's not a double-click
+      if (newClickCount === 1) {
+        onMouseDown(e, member.id);
+      }
+    }, 200); // 200ms to detect double-click
+
+    setClickTimer(timer);
+  };
+
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Clear the timer to prevent drag from starting
+    if (clickTimer) {
+      clearTimeout(clickTimer);
+      setClickTimer(null);
+    }
+    setClickCount(0);
+    
+    console.log('Double-click detected:', { 
+      isPerson, 
+      hasAssignee: !!member.assignee, 
+      isUnassigned, 
+      isFloating,
+      memberId: member.id,
+      memberName: `${member.firstName} ${member.lastName}`,
+      memberType: member.type,
+      assignee: member.assignee
+    });
+    
+    // If the person is assigned to a vehicle/team (has assignee and is not in unassigned area), move them back to unassigned
+    if (isPerson && member.assignee && !isUnassigned) {
+      console.log('Moving person back to unassigned:', member.firstName, member.lastName);
+      onUpdate({ assignee: null, position: undefined });
+    } else if (isPerson && isFloating) {
+      // If floating, also move to unassigned
+      console.log('Moving floating person to unassigned:', member.firstName, member.lastName);
+      onUpdate({ assignee: null, position: undefined });
+    } else {
+      // Otherwise, allow editing the name
+      console.log('Enabling name editing for:', member.firstName, member.lastName);
+      setIsEditing(true);
+    }
+  };
 
   return (
     <Card
       data-member-id={member.id}
-      onMouseDown={(e) => onMouseDown(e, member.id)}
+      onMouseDown={handleMouseDown}
+      onDoubleClick={handleDoubleClick}
       style={{
         width: member.width ? `${member.width}px` : 'auto',
         height: member.height ? `${member.height}px` : 'auto',
@@ -104,7 +171,7 @@ export function TeamMemberCard({ member, skills, isUnassigned = false, isFloatin
         </div>
 
         {/* Name Section */}
-        <div className="mb-3" onDoubleClick={handleDoubleClick}>
+        <div className="mb-3">
           {isEditing ? (
             <Input
               type="text"
