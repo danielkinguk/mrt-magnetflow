@@ -177,35 +177,47 @@ export function MountainRescueBoard({
 
   const handleMouseDownOnMember = (e: MouseEvent<HTMLDivElement>, memberId: string) => {
     e.stopPropagation();
+    
     const member = teamMembers.find(m => m.id === memberId);
     if (!member) return;
-    
-    const cardElement = e.currentTarget as HTMLDivElement;
+
+    console.log('Drag start for member:', memberId, member.firstName, member.lastName);
+
+    const cardElement = e.currentTarget as HTMLElement;
     const cardRect = cardElement.getBoundingClientRect();
     const boardRect = boardRef.current?.getBoundingClientRect();
-
-    if (!boardRect) return;
-
-    let initialPosition = member.position;
     
-    if (!initialPosition) {
-        // If the member doesn't have a position, it's in a column. Calculate its initial
-        // position on the board before detaching it.
-        initialPosition = {
-          x: cardRect.left - boardRect.left,
-          y: cardRect.top - boardRect.top,
-        };
-        // Immediately update state to reflect it's being dragged and has a position
-        onUpdateMember(memberId, { position: initialPosition, assignee: null });
+    if (boardRect) {
+      const initialPosition = {
+        x: cardRect.left - boardRect.left,
+        y: cardRect.top - boardRect.top,
+      };
+      // Don't immediately update state - let the drag operation handle it
     }
     
     const boardPos = getBoardCoordinates(e);
-
+    
+    // Calculate offset in the same coordinate system as boardPos (accounting for zoom and pan)
+    const offsetX = Math.round(((e.clientX - cardRect.left - pan.x) / zoom) * 100) / 100;
+    const offsetY = Math.round(((e.clientY - cardRect.top - pan.y) / zoom) * 100) / 100;
+    
     setDraggedItem({
       id: memberId,
       type: 'member',
-      offset: { x: boardPos.x - initialPosition.x, y: boardPos.y - initialPosition.y },
-      initialPosition,
+      offset: {
+        x: offsetX,
+        y: offsetY,
+      },
+      initialPosition: boardPos,
+    });
+    
+    console.log('DraggedItem set:', {
+      id: memberId,
+      type: 'member',
+      offset: {
+        x: offsetX,
+        y: offsetY,
+      }
     });
   };
 
@@ -235,83 +247,163 @@ export function MountainRescueBoard({
   };
   
   const handleMouseMove = (e: MouseEvent<HTMLElement>) => {
-    // Use requestAnimationFrame for smoother updates
-    requestAnimationFrame(() => {
+    if (draggedItem) {
       const boardPos = getBoardCoordinates(e);
+      const newX = boardPos.x - draggedItem.offset.x;
+      const newY = boardPos.y - draggedItem.offset.y;
 
-      if (draggedItem) {
-        let newX = boardPos.x - draggedItem.offset.x;
-        let newY = boardPos.y - draggedItem.offset.y;
-        
-        // Only snap to grid for columns, allow smooth movement for members
-        if (draggedItem.type === 'column') {
-          newX = Math.round(newX / GRID_SIZE) * GRID_SIZE;
-          newY = Math.round(newY / GRID_SIZE) * GRID_SIZE;
-        }
-
-        if (draggedItem.type === 'column') {
-          onUpdateColumn(draggedItem.id, { position: { x: newX, y: newY } });
-        } else if (draggedItem.type === 'member') {
-          onUpdateMember(draggedItem.id, { position: { x: newX, y: newY } });
-        }
-      } else if (resizedItem) {
-        const dx = e.clientX - resizedItem.initialPos.x;
-        const dy = e.clientY - resizedItem.initialPos.y;
-        
-        if (resizedItem.type === 'member') {
-          const newWidth = Math.max(MIN_CARD_WIDTH, resizedItem.initialSize.width + dx);
-          const newHeight = Math.max(MIN_CARD_HEIGHT, resizedItem.initialSize.height + dy);
-          onUpdateMember(resizedItem.id, { width: newWidth, height: newHeight });
-        } else if (resizedItem.type === 'column') {
-          const newWidth = Math.max(MIN_TOOLBAR_WIDTH, resizedItem.initialSize.width + dx);
-          const newHeight = Math.max(MIN_TOOLBAR_HEIGHT, resizedItem.initialSize.height + dy);
-          onUpdateColumn(resizedItem.id, { width: newWidth, height: newHeight });
+      if (draggedItem.type === 'column') {
+        onUpdateColumn(draggedItem.id, { position: { x: newX, y: newY } });
+      } else if (draggedItem.type === 'member') {
+        // For members, we need to handle the initial state change
+        const member = teamMembers.find(m => m.id === draggedItem.id);
+        if (member && !member.position) {
+          // This is the first move - make the member floating
+          onUpdateMember(draggedItem.id, { 
+            position: { x: newX, y: newY }, 
+            assignee: null 
+          });
+        } else {
+          // Continue updating position with improved precision
+          const adjustedX = Math.round(newX * 100) / 100; // Round to 2 decimal places
+          const adjustedY = Math.round(newY * 100) / 100; // Round to 2 decimal places
+          onUpdateMember(draggedItem.id, { position: { x: adjustedX, y: adjustedY } });
         }
       }
-    });
-  };
-  
-  const handleMouseUp = (e: React.MouseEvent<HTMLElement>) => {
-    if (draggedItem && draggedItem.type === 'member') {
-      // Temporarily hide the dragged element to detect drop target
-      const draggedEl = document.querySelector(`[data-member-id="${draggedItem.id}"]`) as HTMLElement;
-      let originalDisplay: string | null = null;
+    } else if (resizedItem) {
+      const dx = e.clientX - resizedItem.initialPos.x;
+      const dy = e.clientY - resizedItem.initialPos.y;
       
-      if (draggedEl) {
-        originalDisplay = draggedEl.style.display;
-        draggedEl.style.display = 'none';
+      const newWidth = Math.max(100, resizedItem.initialSize.width + dx);
+      const newHeight = Math.max(100, resizedItem.initialSize.height + dy);
+      
+      if (resizedItem.type === 'column') {
+        onUpdateColumn(resizedItem.id, { width: newWidth, height: newHeight });
+      } else if (resizedItem.type === 'member') {
+        onUpdateMember(resizedItem.id, { width: newWidth, height: newHeight });
       }
-  
-      try {
-        // Now we can properly detect the drop target
-        const targetElement = document.elementFromPoint(e.clientX, e.clientY);
-        const targetColumnEl = targetElement?.closest('[data-column-id]');
-        const targetColumnId = targetColumnEl?.getAttribute('data-column-id');
-        const targetColumnType = targetColumnEl?.getAttribute('data-column-type') as 'vehicle' | 'team' | 'unassigned' | undefined;
-  
-        let newAssignee: Assignee = null;
-        if (targetColumnId && targetColumnType && ['vehicle', 'team'].includes(targetColumnType)) {
-          newAssignee = { type: targetColumnType as 'vehicle' | 'team', id: targetColumnId };
-        }
-  
-        // Final update: set assignee and clear position to snap it into place.
-        onUpdateMember(draggedItem.id, { assignee: newAssignee, position: undefined });
-
-      } finally {
-        // Always restore the element's visibility and clear drag state
-        if (draggedEl && originalDisplay !== null) {
-          draggedEl.style.display = originalDisplay;
-        }
-        setDraggedItem(null);
-        setResizedItem(null);
-      }
-    } else {
-      // Clear drag state if it wasn't a member being dragged
-      setDraggedItem(null);
-      setResizedItem(null);
     }
   };
   
+  const handleMouseUp = (e: React.MouseEvent<HTMLElement>) => {
+    console.log('Mouse up event triggered');
+    console.log('DraggedItem state:', draggedItem);
+    
+    if (draggedItem && draggedItem.type === 'member') {
+      console.log('Drop detected for member:', draggedItem.id);
+      
+      // Get the element at the drop position
+      const targetElement = document.elementFromPoint(e.clientX, e.clientY);
+      console.log('Target element:', targetElement);
+      
+      // Look for the closest column element, including the card itself
+      let targetColumnEl = targetElement?.closest('[data-column-id]');
+      
+      // If we didn't find a column, check if we're dropping on a team member card
+      if (!targetColumnEl && targetElement?.closest('[data-member-id]')) {
+        const memberCard = targetElement.closest('[data-member-id]');
+        const memberId = memberCard?.getAttribute('data-member-id');
+        if (memberId) {
+          const member = teamMembers.find(m => m.id === memberId);
+          if (member?.assignee) {
+            // Find the column that contains this member
+            const column = columns.find(col => col.id === member.assignee?.id);
+            if (column) {
+              targetColumnEl = document.querySelector(`[data-column-id="${column.id}"]`);
+            }
+          }
+        }
+      }
+      
+      console.log('Target column element:', targetColumnEl);
+      
+      const targetColumnId = targetColumnEl?.getAttribute('data-column-id');
+      const targetColumnType = targetColumnEl?.getAttribute('data-column-type') as 'vehicle' | 'team' | 'unassigned' | undefined;
+      
+      console.log('Target column ID:', targetColumnId);
+      console.log('Target column type:', targetColumnType);
+
+      let newAssignee: Assignee = null;
+      
+      // If dropped on a valid column (vehicle or team), assign to that column
+      if (targetColumnId && targetColumnType && ['vehicle', 'team'].includes(targetColumnType)) {
+        newAssignee = { type: targetColumnType as 'vehicle' | 'team', id: targetColumnId };
+        console.log('Assigning to column:', newAssignee);
+      }
+      // If dropped outside of any column or on unassigned area, move to unassigned
+      else {
+        newAssignee = null; // This will make it unassigned
+        console.log('Moving to unassigned');
+      }
+
+      // Update the member: set assignee and clear position to snap it into place
+      onUpdateMember(draggedItem.id, { assignee: newAssignee, position: undefined });
+    }
+    
+    setDraggedItem(null);
+    setResizedItem(null);
+  };
+
+  const handleWheel = (e: React.WheelEvent<HTMLElement>) => {
+    e.preventDefault();
+    const delta = e.deltaY;
+    const newPan = { ...pan };
+    
+    if (e.ctrlKey || e.metaKey) {
+      // Zoom with Ctrl/Cmd + wheel
+      const zoomDelta = delta > 0 ? 0.9 : 1.1;
+      const newZoom = Math.max(0.25, Math.min(3, zoom * zoomDelta));
+      setZoom(newZoom);
+    } else {
+      // Pan with wheel - add scroll limits
+      const newY = newPan.y + delta * 0.5;
+      
+      // Calculate content bounds more directly
+      const boardRect = boardRef.current?.getBoundingClientRect();
+      if (boardRect) {
+        // Find the actual content boundaries by looking at all positioned elements
+        const allPositions = [
+          ...columns.map(col => col.position.y),
+          ...floatingMembers.map(member => member.position?.y || 0),
+          ...teamMembers.map(member => {
+            if (member.assignee) {
+              const container = columns.find(col => col.id === member.assignee?.id);
+              return container ? container.position.y : 0;
+            }
+            return 0;
+          })
+        ].filter(pos => pos !== undefined);
+        
+        const minContentY = Math.min(...allPositions, 0);
+        const maxContentY = Math.max(...allPositions, 0) + 600; // Add space for cards
+        
+        // Calculate scroll limits
+        const maxScrollUp = 50; // Very small padding at top to prevent content from disappearing
+        const maxScrollDown = -(maxContentY * zoom - boardRect.height + 150); // Reduced padding to match new layout
+        
+        // Clamp the scroll position
+        const clampedY = Math.max(maxScrollDown, Math.min(maxScrollUp, newY));
+        newPan.y = clampedY;
+        
+        console.log('Scroll limits:', {
+          maxScrollUp,
+          maxScrollDown,
+          newY,
+          clampedY,
+          minContentY,
+          maxContentY,
+          zoom,
+          boardHeight: boardRect.height,
+          allPositions: allPositions.slice(0, 5) // Log first 5 positions
+        });
+      } else {
+        newPan.y = newY;
+      }
+      
+      setPan(newPan);
+    }
+  };
+
   const unassignedMembers = teamMembers.filter(m => m.assignee === null && m.position === undefined);
   const unassignedPeople = unassignedMembers.filter(m => m.type === 'person');
   const unassignedEquipment = unassignedMembers.filter(m => m.type === 'equipment');
@@ -323,7 +415,7 @@ export function MountainRescueBoard({
       className="w-full h-full relative flex flex-col bg-background"
     >
       {/* Zoom Controls */}
-      <div className="absolute top-4 right-4 z-50 flex items-center gap-1 bg-background/80 backdrop-blur-sm border rounded-lg p-1">
+      <div className="fixed top-20 right-4 z-50 flex items-center gap-1 bg-background/80 backdrop-blur-sm border rounded-lg p-1">
         <Button
           variant="ghost"
           size="icon"
@@ -358,7 +450,7 @@ export function MountainRescueBoard({
         </Button>
       </div>
       <div 
-        className={cn("flex-1 w-full h-full relative", {
+        className={cn("flex-1 w-full relative overflow-auto board-scroll", {
           'select-none': !!draggedItem
         })}
         onMouseMove={throttledMouseMove}
@@ -384,12 +476,15 @@ export function MountainRescueBoard({
         </AlertDialog>
 
         <div 
-          className="p-4 w-full h-full relative"
+          className="p-4 w-full relative"
           style={{
             transform: `scale(${zoom}) translate(${pan.x}px, ${pan.y}px)`,
             transformOrigin: 'top left',
-            transition: 'transform 0.1s ease-out'
+            transition: 'transform 0.1s ease-out',
+            minHeight: '100vh',
+            paddingBottom: `${Math.max(20, Math.min(60, 30))}px` // Fixed padding regardless of zoom
           }}
+          onWheel={handleWheel}
         >
           {columns.map((column) => {
             if (column.type === 'toolbar') {
@@ -422,12 +517,15 @@ export function MountainRescueBoard({
                   members={members}
                   allSkills={ALL_SKILLS}
                   position={column.position}
+                  width={column.width}
+                  height={column.height}
                   onMouseDown={(e) => handleMouseDownOnColumn(e, column.id)}
                   onUpdateMember={onUpdateMember}
                   onUpdateContainer={onUpdateContainer}
                   onRemoveContainer={onRemoveContainer}
                   onResizeMemberStart={(e, id) => handleResizeStart(e, id, 'member')}
                   onMemberMouseDown={handleMouseDownOnMember}
+                  onResizeStart={(e, id, type) => handleResizeStart(e, id, type)}
                 />
               );
             }
@@ -461,53 +559,75 @@ export function MountainRescueBoard({
       <div 
         data-column-id="unassigned"
         data-column-type="unassigned"
-        className="w-full bg-background/50 border-t border-border p-2 min-h-24"
+        className={cn(
+          "w-full bg-background/50 border-t border-border p-2 z-10 unassigned-scroll transition-all duration-200",
+          {
+            "bg-background/70 border-primary/50 select-none": draggedItem?.type === 'member'
+          }
+        )}
+        style={{ 
+          height: `${Math.max(75, Math.min(250, 150 / zoom))}px`, // Dynamic height with limits
+          flexShrink: 0,
+          overflowY: 'auto',
+          position: 'relative'
+        }}
       >
-        <h3 className="text-center font-bold text-sm mb-2 text-foreground/60 uppercase tracking-wider">Unassigned Resources</h3>
-        
-        {/* People Row */}
-        {unassignedPeople.length > 0 && (
-          <div className="mb-4">
-            <h4 className="text-xs font-semibold mb-2 text-foreground/70 uppercase tracking-wider">People</h4>
-            <div className="grid grid-cols-5 gap-2 p-2">
-              {unassignedPeople.map(member => (
-                <div key={member.id} className="mb-2">
-                  <TeamMemberCard 
-                    member={member} 
-                    skills={ALL_SKILLS} 
-                    isUnassigned={true}
-                    onRemove={() => onRemoveMember(member.id)} 
-                    onUpdate={(updates) => onUpdateMember(member.id, updates)}
-                    onResizeStart={(e, id) => handleResizeStart(e, id, 'member')}
-                    onMouseDown={handleMouseDownOnMember}
-                  />
-                </div>
-              ))}
+        <div>
+          <h3 className="text-center font-bold text-sm mb-2 text-foreground/60 uppercase tracking-wider sticky top-0 bg-background/50 backdrop-blur-sm py-1 z-10">
+            Unassigned Resources
+            {unassignedPeople.length + unassignedEquipment.length > 0 && (
+              <span className="ml-2 text-xs text-foreground/40">
+                ({unassignedPeople.length + unassignedEquipment.length} items)
+              </span>
+            )}
+          </h3>
+          
+          {/* People Row */}
+          {unassignedPeople.length > 0 && (
+            <div className="mb-4">
+              <h4 className="text-xs font-semibold mb-2 text-foreground/70 uppercase tracking-wider">People</h4>
+              <div className="grid grid-cols-5 gap-2 p-2">
+                {unassignedPeople.map(member => {
+                  return (
+                    <div key={member.id} className="mb-2">
+                      <TeamMemberCard 
+                        member={member} 
+                        skills={ALL_SKILLS} 
+                        isUnassigned={true}
+                        onRemove={() => onRemoveMember(member.id)} 
+                        onUpdate={(updates) => onUpdateMember(member.id, updates)}
+                        onResizeStart={(e, id) => handleResizeStart(e, id, 'member')}
+                        onMouseDown={handleMouseDownOnMember}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        )}
-        
-        {/* Equipment Row */}
-        {unassignedEquipment.length > 0 && (
-          <div>
-            <h4 className="text-xs font-semibold mb-2 text-foreground/70 uppercase tracking-wider">Equipment</h4>
-            <div className="grid grid-cols-5 gap-2 p-2">
-              {unassignedEquipment.map(member => (
-                <div key={member.id} className="mb-2">
-                  <TeamMemberCard 
-                    member={member} 
-                    skills={ALL_SKILLS} 
-                    isUnassigned={true}
-                    onRemove={() => onRemoveMember(member.id)} 
-                    onUpdate={(updates) => onUpdateMember(member.id, updates)}
-                    onResizeStart={(e, id) => handleResizeStart(e, id, 'member')}
-                    onMouseDown={handleMouseDownOnMember}
-                  />
-                </div>
-              ))}
+          )}
+          
+          {/* Equipment Row */}
+          {unassignedEquipment.length > 0 && (
+            <div>
+              <h4 className="text-xs font-semibold mb-2 text-foreground/70 uppercase tracking-wider">Equipment</h4>
+              <div className="grid grid-cols-5 gap-2 p-2">
+                {unassignedEquipment.map(member => (
+                  <div key={member.id} className="mb-2">
+                    <TeamMemberCard 
+                      member={member} 
+                      skills={ALL_SKILLS} 
+                      isUnassigned={true}
+                      onRemove={() => onRemoveMember(member.id)} 
+                      onUpdate={(updates) => onUpdateMember(member.id, updates)}
+                      onResizeStart={(e, id) => handleResizeStart(e, id, 'member')}
+                      onMouseDown={handleMouseDownOnMember}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

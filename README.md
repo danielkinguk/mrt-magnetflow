@@ -299,7 +299,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Acknowledgments
 
 - Built with Next.js and the React ecosystem
-- Powered by Google AI and Genkit
 - Designed for modern team collaboration
 - Enhanced with comprehensive sharing and collaboration features
 - Copyright 2025 - DK Apps

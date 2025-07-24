@@ -29,20 +29,6 @@ export default function WelcomePage() {
                 MagnetFlow provides a digital canvas for your team. Use our magnetic boards to organize tasks, brainstorm concepts, and manage projects with intuitive drag-and-drop simplicity.
               </p>
             </div>
-            
-            {/* DK Apps Logo */}
-            <div className="flex justify-center">
-              <div className="bg-white rounded-xl p-4 shadow-lg border border-gray-200 flex items-center justify-center min-h-[80px] min-w-[140px]">
-                <Image
-                  src="/logo.png"
-                  alt="DK Apps Logo"
-                  width={120}
-                  height={60}
-                  className="object-contain"
-                  priority
-                />
-              </div>
-            </div>
           </div>
         </div>
       </main>

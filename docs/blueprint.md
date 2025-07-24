@@ -1,6 +1,6 @@
 # **App Name**: MagnetFlow
 
-## Core Features:
+## Core Features
 
 - Element Creation: Creation of magnetic elements that accept text or icons
 - Drag and Drop Canvas: Dragging and dropping of elements across an infinite canvas.
@@ -9,7 +9,7 @@
 - Layout Tool: Automatic element arrangement tool for visually organizing magnetic notes in appealing ways, or with semantic intent
 - AI Assisted Organization: AI-powered tool which helps organize the ideas by analyzing content and suggesting connections.
 
-## Style Guidelines:
+## Style Guidelines
 
 - Primary color: Soft teal (#78D8C3) to promote a calm, balanced creative process.
 - Background color: Light gray (#F0F0F0) to reduce visual noise and highlight magnet content.

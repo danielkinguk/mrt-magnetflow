@@ -5,7 +5,7 @@ import type { Vehicle, TeamMember, Skill, Point, Team } from '@/lib/mrt/types';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { TeamMemberCard } from '@/components/mrt/team-member-card';
 import { Input } from '../ui/input';
-import { Trash2 } from 'lucide-react';
+import { Trash2, ArrowDownRight } from 'lucide-react';
 
 interface ResourceColumnProps {
   container: Vehicle | Team;
@@ -13,12 +13,15 @@ interface ResourceColumnProps {
   members: TeamMember[];
   allSkills: Skill[];
   position: Point;
+  width?: number;
+  height?: number;
   onMouseDown: (e: MouseEvent) => void;
   onUpdateMember: (id: string, updates: Partial<TeamMember>) => void;
   onUpdateContainer: (id: string, type: 'vehicle' | 'team', updates: Partial<Vehicle | Team>) => void;
   onRemoveContainer: (id: string, type: 'vehicle' | 'team') => void;
   onResizeMemberStart: (e: MouseEvent, memberId: string) => void;
   onMemberMouseDown: (e: MouseEvent<HTMLDivElement>, memberId: string) => void;
+  onResizeStart: (e: MouseEvent, id: string, type: 'member' | 'column') => void;
 }
 
 export function ResourceColumn({ 
@@ -27,12 +30,15 @@ export function ResourceColumn({
   members, 
   allSkills, 
   position, 
+  width,
+  height,
   onMouseDown, 
   onUpdateMember, 
   onUpdateContainer, 
   onRemoveContainer, 
   onResizeMemberStart, 
-  onMemberMouseDown 
+  onMemberMouseDown,
+  onResizeStart
 }: ResourceColumnProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(container.name);
@@ -70,7 +76,15 @@ export function ResourceColumn({
       style={{ left: position.x, top: position.y }}
       onMouseDown={onMouseDown}
     >
-      <Card data-column-id={container.id} data-column-type={type} className="w-80 flex-shrink-0 cursor-move group relative transition-all duration-200 hover:shadow-xl">
+      <Card 
+        data-column-id={container.id} 
+        data-column-type={type} 
+        className={width !== undefined ? "flex-shrink-0 cursor-move group relative transition-all duration-200 hover:shadow-xl select-none" : "w-80 flex-shrink-0 cursor-move group relative transition-all duration-200 hover:shadow-xl select-none"}
+        style={width !== undefined ? {
+          width: width,
+          height: height || 'auto'
+        } : undefined}
+      >
         <div className="bg-gradient-to-br from-white/90 to-gray-50/90 dark:from-gray-800/90 dark:to-gray-900/90 backdrop-blur-sm border border-gray-200/60 dark:border-gray-700/60 rounded-t-lg">
           <CardHeader className="p-3" onDoubleClick={handleDoubleClick}>
             {isEditing ? (
@@ -105,9 +119,15 @@ export function ResourceColumn({
         >
           <Trash2 className="w-4 h-4" />
         </button>
-        <CardContent className="p-3 min-h-[200px] space-y-2 bg-gradient-to-b from-gray-50/50 to-white/50 dark:from-gray-800/50 dark:to-gray-900/50 rounded-b-lg">
+        <div
+          onMouseDown={(e) => { e.stopPropagation(); onResizeStart(e, container.id, 'column'); }}
+          className="absolute bottom-0 right-0 cursor-se-resize text-muted-foreground hover:text-foreground/80 opacity-50 group-hover:opacity-100 select-none"
+        >
+          <ArrowDownRight className="w-3 h-3" />
+        </div>
+        <CardContent className="p-3 min-h-[200px] bg-gradient-to-b from-gray-50/50 to-white/50 dark:from-gray-800/50 dark:to-gray-900/50 rounded-b-lg">
           {sortedMembers.map(member => (
-            <div key={member.id} className="mb-2">
+            <div key={member.id} className="mb-1">
               <TeamMemberCard 
                 member={member} 
                 skills={allSkills} 

@@ -91,7 +91,9 @@ export function Header() {
     
     if (isMaximized) {
       // Center justify when maximized
-      const totalWidth = resourceColumns.length * 340;
+      const columnWidth = 320; // Default column width (w-80 = 320px)
+      const spacing = 20; // Gap between columns
+      const totalWidth = resourceColumns.length * columnWidth + (resourceColumns.length - 1) * spacing;
       const windowWidth = window.innerWidth;
       const startX = (windowWidth - totalWidth) / 2;
       
@@ -101,28 +103,43 @@ export function Header() {
           // Find the parent div that has the absolute positioning
           const parentDiv = element.closest('.absolute') as HTMLElement;
           if (parentDiv) {
-            parentDiv.style.left = `${startX + (index * 340)}px`;
+            parentDiv.style.left = `${startX + (index * (columnWidth + spacing))}px`;
             parentDiv.style.top = '120px';
-            console.log(`Centered column ${index} to position: ${startX + (index * 340)}px, 120px`);
+            console.log(`Centered column ${index} to position: ${startX + (index * (columnWidth + spacing))}px, 120px`);
           } else {
             console.log('Could not find parent div for column:', column);
           }
+          
+          // Reset the column width to default
+          element.style.width = '';
+          element.style.height = '';
+          console.log(`Reset width/height for column ${index}`);
         }
       });
     } else {
       // Normal left-aligned positioning when not maximized
+      const columnWidth = 320; // Default column width (w-80 = 320px)
+      const spacing = 0; // No gap between columns
+      
       resourceColumns.forEach((column, index) => {
         const element = column as HTMLElement;
         if (element) {
           // Find the parent div that has the absolute positioning
           const parentDiv = element.closest('.absolute') as HTMLElement;
           if (parentDiv) {
-            parentDiv.style.left = `${index * 340 + 20}px`;
+            const leftPosition = index * columnWidth + 20;
+            parentDiv.style.left = `${leftPosition}px`;
             parentDiv.style.top = '120px';
-            console.log(`Aligned column ${index} to position: ${index * 340 + 20}px, 120px`);
+            console.log(`Aligned column ${index} to position: ${leftPosition}px, 120px`);
+            console.log(`Column ${index} - width: ${element.offsetWidth}px, left: ${leftPosition}px`);
           } else {
             console.log('Could not find parent div for column:', column);
           }
+          
+          // Reset the column width to default
+          element.style.width = '';
+          element.style.height = '';
+          console.log(`Reset width/height for column ${index}`);
         }
       });
     }

@@ -5,5 +5,20 @@ import { ThemeProvider as NextThemesProvider } from "next-themes"
 import { type ThemeProviderProps } from "next-themes/dist/types"
 
 export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
-  return <NextThemesProvider {...props}>{children}</NextThemesProvider>
+  const [mounted, setMounted] = React.useState(false)
+
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Prevent hydration mismatch by not rendering until mounted
+  if (!mounted) {
+    return <div suppressHydrationWarning>{children}</div>
+  }
+
+  return (
+    <div suppressHydrationWarning>
+      <NextThemesProvider {...props}>{children}</NextThemesProvider>
+    </div>
+  )
 }

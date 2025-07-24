@@ -22,6 +22,7 @@ export function TeamMemberCard({ member, skills, isUnassigned = false, isFloatin
   const memberSkills = skills.filter(s => member.skills.includes(s.id));
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(`${member.firstName} ${member.lastName}`);
+  const [isDragging, setIsDragging] = useState(false);
   const isPerson = member.type === 'person';
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -40,73 +41,44 @@ export function TeamMemberCard({ member, skills, isUnassigned = false, isFloatin
     }
   };
 
-  const [clickCount, setClickCount] = useState(0);
-  const [clickTimer, setClickTimer] = useState<NodeJS.Timeout | null>(null);
-
-  // Cleanup timer on unmount
+  // Reset dragging state when member is no longer floating
   useEffect(() => {
-    return () => {
-      if (clickTimer) {
-        clearTimeout(clickTimer);
-      }
-    };
-  }, [clickTimer]);
+    if (!isFloating && isDragging) {
+      setIsDragging(false);
+    }
+  }, [isFloating, isDragging]);
+
+  // Update name state when member name changes
+  useEffect(() => {
+    const fullName = `${member.firstName} ${member.lastName}`;
+    if (name !== fullName) {
+      setName(fullName);
+    }
+  }, [member.firstName, member.lastName, name]);
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    // Increment click count
-    const newClickCount = clickCount + 1;
-    setClickCount(newClickCount);
-
-    // Clear any existing timer
-    if (clickTimer) {
-      clearTimeout(clickTimer);
-    }
-
-    // Set a timer to reset click count and start drag if no double-click
-    const timer = setTimeout(() => {
-      setClickCount(0);
-      // Only start drag if it's not a double-click
-      if (newClickCount === 1) {
-        onMouseDown(e, member.id);
-      }
-    }, 200); // 200ms to detect double-click
-
-    setClickTimer(timer);
+    // Stop propagation to prevent column dragging when dragging individual cards
+    e.stopPropagation();
+    
+    // Set dragging state
+    setIsDragging(true);
+    
+    // Start drag immediately
+    onMouseDown(e, member.id);
   };
 
   const handleDoubleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
-    // Clear the timer to prevent drag from starting
-    if (clickTimer) {
-      clearTimeout(clickTimer);
-      setClickTimer(null);
-    }
-    setClickCount(0);
-    
-    console.log('Double-click detected:', { 
-      isPerson, 
-      hasAssignee: !!member.assignee, 
-      isUnassigned, 
-      isFloating,
-      memberId: member.id,
-      memberName: `${member.firstName} ${member.lastName}`,
-      memberType: member.type,
-      assignee: member.assignee
-    });
-    
     // If the person is assigned to a vehicle/team (has assignee and is not in unassigned area), move them back to unassigned
     if (isPerson && member.assignee && !isUnassigned) {
-      console.log('Moving person back to unassigned:', member.firstName, member.lastName);
       onUpdate({ assignee: null, position: undefined });
     } else if (isPerson && isFloating) {
       // If floating, also move to unassigned
-      console.log('Moving floating person to unassigned:', member.firstName, member.lastName);
       onUpdate({ assignee: null, position: undefined });
     } else {
       // Otherwise, allow editing the name
-      console.log('Enabling name editing for:', member.firstName, member.lastName);
       setIsEditing(true);
     }
   };
@@ -128,7 +100,7 @@ export function TeamMemberCard({ member, skills, isUnassigned = false, isFloatin
         {
           'from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/30 border-red-300/60 dark:border-red-600/60': member.role === 'leader',
           'from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 border-blue-300/60 dark:border-blue-600/60': member.type === 'equipment',
-          'opacity-75 z-50 shadow-2xl': isFloating,
+          'opacity-75 z-50 shadow-2xl': isFloating && !isDragging, // Don't show floating effects while dragging
         }
       )}
     >
