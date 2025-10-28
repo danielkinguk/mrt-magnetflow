@@ -1,4 +1,4 @@
-*MagnetFlow* - Visualize Your Ideas, Unleash Your Flow
+# *MagnetFlow* - Visualize Your Ideas, Unleash Your Flow #
 
 Interactive digital canvas application for MR team collaboration and resource management. Built with Next.js 15, TypeScript, and Tailwind CSS.
 
